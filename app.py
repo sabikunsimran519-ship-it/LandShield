@@ -311,6 +311,35 @@ def get_land_ai_analysis(land_id):
     return jsonify(analyze_land(land))
 
 
+@app.route("/api/lands/<land_id>/location")
+def get_land_location(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+
+    is_demo = land["land_id"] == "DEMO-001" and land["latitude"] is not None and land["longitude"] is not None
+    has_coordinates = land["latitude"] is not None and land["longitude"] is not None
+    accuracy = "DEMO / APPROXIMATE" if is_demo else "UNVERIFIED" if has_coordinates else "NOT AVAILABLE"
+    note = ("This coordinate is for demonstration only and does not represent an official land parcel location."
+            if is_demo else "No coordinates are recorded for this land."
+            if not has_coordinates else "These coordinates have not been verified as an official land parcel location.")
+    return jsonify({
+        "land_id": land["id"],
+        "public_land_id": land["land_id"],
+        "location": {
+            "latitude": land["latitude"],
+            "longitude": land["longitude"],
+            "district": land["district"],
+            "upazila": land["upazila"],
+            "mouza": land["mouza"],
+            "accuracy": accuracy,
+        },
+        "map_note": note,
+    })
+
+
 @app.errorhandler(sqlite3.Error)
 def handle_database_error(error):
     app.logger.error("Database error: %s", error)

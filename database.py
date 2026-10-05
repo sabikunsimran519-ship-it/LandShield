@@ -26,7 +26,9 @@ def create_database():
             mutation_status TEXT,
             dispute_status TEXT,
             khas_status TEXT,
-            acquisition_status TEXT
+            acquisition_status TEXT,
+            latitude REAL,
+            longitude REAL
         )
     """)
 
