@@ -2,7 +2,7 @@ import sqlite3
 import re
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -337,6 +337,57 @@ def get_land_location(land_id):
             "accuracy": accuracy,
         },
         "map_note": note,
+    })
+
+
+@app.route("/api/lands/<land_id>/what-if")
+def get_land_what_if(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+
+    allowed = {"dispute": {"resolved", "active"}, "mutation": {"complete", "pending"}}
+    for name in request.args:
+        values = request.args.getlist(name)
+        if name not in allowed:
+            return jsonify({"error": f"Unsupported scenario parameter: {name}."}), 400
+        if len(values) != 1 or values[0] not in allowed[name]:
+            return jsonify({"error": f"Invalid {name} value; allowed values: {', '.join(sorted(allowed[name]))}."}), 400
+
+    current = calculate_risk(land)
+    # Only this dictionary changes; the SQLite row and database remain untouched.
+    simulated_land = dict(land)
+    scenario = {}
+    changes = []
+    for name, column in (("dispute", "dispute_status"), ("mutation", "mutation_status")):
+        if name in request.args:
+            new_value = request.args[name]
+            scenario[name] = new_value
+            old_value = str(land[column] or "unknown")
+            if old_value != new_value:
+                simulated_land[column] = new_value
+                changes.append(f"{name.capitalize()} status: {old_value} to {new_value}.")
+
+    simulated = calculate_risk(simulated_land)
+    difference = simulated["overall_score"] - current["overall_score"]
+    if difference < 0:
+        explanation = f"Hypothetical risk decreases by {-difference} points."
+    elif difference > 0:
+        explanation = f"Hypothetical risk increases by {difference} points."
+    else:
+        explanation = "Hypothetical risk score is unchanged."
+    explanation += " This simulation does not change stored land data or confirm that a condition has changed."
+
+    return jsonify({
+        "land_id": land["id"],
+        "public_land_id": land["land_id"],
+        "current": {"overall_score": current["overall_score"], "risk_level": current["risk_level"]},
+        "scenario": scenario,
+        "simulated": {"overall_score": simulated["overall_score"], "risk_level": simulated["risk_level"]},
+        "changes": changes,
+        "explanation": explanation,
     })
 
 
