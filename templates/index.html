@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f7f2">
+  <title>LandShield — Land Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="brand-mark">L</span><span>land<span class="brand-light">shield</span><small>LAND INTELLIGENCE</small></span></a>
+    <div class="workspace"><span class="workspace-dot"></span><span>Workspace</span><b>Demo portfolio</b><span class="chevron">⌄</span></div>
+    <p class="nav-label">WORKSPACE</p>
+    <nav>
+      <a class="nav-item active" href="#overview"><span>◫</span> Overview</a>
+      <a class="nav-item" href="#map"><span>⌖</span> Land map</a>
+      <a class="nav-item" href="#risk"><span>◉</span> Risk analysis</a>
+      <a class="nav-item" href="#documents"><span>▤</span> Documents</a>
+      <a class="nav-item" href="#digital-twin"><span>◇</span> Digital twin</a>
+      <a class="nav-item" href="#simulator"><span>⟳</span> What-if simulator</a>
+    </nav>
+    <div class="sidebar-bottom"><div class="help-icon">?</div><div><b>Need a hand?</b><small>Visit our help center</small></div><span class="arrow">↗</span></div>
+    <div class="profile"><div class="avatar">AS</div><div><b>Account</b><small>Land analyst</small></div><span class="chevron">···</span></div>
+  </aside>
+
+  <main class="main-content" id="overview">
+    <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <b>Overview</b></div><details class="mobile-menu"><summary aria-label="Open dashboard navigation">☰</summary><nav><a href="#overview">Overview</a><a href="#map">Land map</a><a href="#risk">Risk analysis</a><a href="#documents">Documents</a><a href="#digital-twin">Digital twin</a><a href="#simulator">What-if simulator</a></nav></details><div class="top-actions"><span class="live-pill"><i></i> LIVE DATA</span><button class="icon-button" aria-label="Notifications">♧<i class="notification-dot"></i></button><div class="top-avatar">AS</div></div></header>
+    <section class="page-heading"><div><p class="eyebrow"><span id="todayDate">LAND PORTFOLIO</span><span>·</span> DHAKA, BANGLADESH</p><h1>Land intelligence, <em>at a glance.</em></h1><p class="subheading">A clearer view of your land, its risks, and what to do next.</p></div><button class="button button-dark" id="refreshButton"><span>↻</span> Refresh data</button></section>
+
+    <section class="land-select-card" id="land-details"><div class="land-icon">⌂</div><div class="land-select-copy"><label for="landSelect">CURRENT LAND PARCEL</label><div class="select-wrap"><select id="landSelect" aria-label="Choose land parcel"><option value="DEMO-001">Loading lands…</option></select><span>⌄</span></div></div><div class="land-location"><span class="pin">⌖</span><div><b id="landLocation">Fetching location…</b><small id="landMeta">Connecting to land registry</small></div></div><div class="land-id"><span>PARCEL ID</span><b id="parcelId">—</b></div><div class="land-updated"><span class="status-dot"></span> Synced with backend</div></section>
+
+    <section class="metrics-grid" aria-label="Land overview metrics">
+      <article class="metric-card score-card"><div class="metric-top"><span>LANDSHIELD RISK SCORE</span><span class="metric-symbol green">◉</span></div><div class="score-row"><div class="score-number" id="riskScore">—<small>/100</small></div><span class="risk-badge" id="riskLevel">Loading</span></div><div class="meter"><span id="scoreMeter"></span></div><p id="riskSummary">Risk score will appear when data loads.</p><a href="#risk">View full assessment <b>→</b></a></article>
+      <article class="metric-card"><div class="metric-top"><span>DOCUMENTS VERIFIED</span><span class="metric-symbol blue">▤</span></div><div class="metric-value" id="documentCount">—<small> docs</small></div><p id="documentSummary">Checking document records…</p><a href="#documents">Review documents <b>→</b></a></article>
+      <article class="metric-card"><div class="metric-top"><span>ACTIVE DISPUTES</span><span class="metric-symbol orange">⚑</span></div><div class="metric-value" id="disputeCount">—<small> reported</small></div><p id="disputeSummary">Checking dispute records…</p><a href="#risk">See risk factors <b>→</b></a></article>
+      <article class="metric-card"><div class="metric-top"><span>SCREENING RESULT</span><span class="metric-symbol red">⚠</span></div><div class="screening-result" id="screeningResult">Checking…</div><p id="screeningNote">Final assessment loads from the risk engine.</p><a href="#risk">View screening details <b>→</b></a></article>
+    </section>
+
+    <div class="section-grid">
+      <section class="panel map-panel" id="map"><div class="panel-heading"><div><p class="section-kicker">GEOSPATIAL VIEW</p><h2>Interactive land map <span class="feature-tag">LIVE</span></h2></div><button class="subtle-button" id="mapExpand">⛶ Expand map</button></div>
+        <div class="map-shell" id="mapShell"><div class="map-grid"></div><svg class="map-svg" viewBox="0 0 760 330" role="img" aria-label="Illustrative land map preview"><path class="river" d="M-20 82 C90 40 110 175 226 144 S365 44 465 83 630 185 790 111"/><path class="road road-major" d="M-10 267 C115 221 168 213 272 159 S461 115 555 70 675 18 775 35"/><path class="road" d="M70 -10 C94 69 151 88 190 155 S229 251 260 340"/><path class="road" d="M497 -10 C458 75 497 127 536 176 S624 267 622 340"/><path class="field field-a" d="M256 83l90-34 54 44-25 62-91 1z"/><path class="field field-b" d="M387 49l82 19 17 71-93 21-18-67z"/><path class="field field-c" d="M294 166l81-2 27 84-71 38-54-52z"/><path class="parcel" d="M393 155l77-17 37 52-26 70-74 1-39-48z"/><circle class="map-point" cx="440" cy="202" r="8"/><circle class="map-point-pulse" cx="440" cy="202" r="16"/><text class="map-label" x="410" y="287">ILLUSTRATIVE PARCEL</text></svg><div class="map-toolbar"><button aria-label="Zoom in" id="zoomIn">+</button><button aria-label="Zoom out" id="zoomOut">−</button><span></span><button aria-label="Locate parcel" id="locateMap">⌖</button></div><div class="map-attribution"><i></i> Preview only · <span id="mapParcelId">DEMO-001</span></div><div class="map-loading" id="mapLoading">Illustration only — actual parcel boundary is not mapped.</div></div><div class="map-footer"><span><i class="legend-parcel"></i> Illustrative parcel</span><span><i class="legend-road"></i> Illustrative roads</span><span><i class="legend-water"></i> Illustrative waterway</span><button id="mapDetails">View parcel details <b>→</b></button></div>
+      </section>
+      <section class="panel twin-panel" id="digital-twin"><div class="panel-heading"><div><p class="section-kicker">PROPERTY MODEL</p><h2>3D land digital twin <span class="feature-tag soon">PREVIEW</span></h2></div><button class="more-button" aria-label="More options">···</button></div><div class="twin-scene"><div class="scene-label"><i></i> CONCEPTUAL TERRAIN VIEW</div><div class="twin-orbit"></div><div class="twin-land"><div class="twin-side"></div><div class="twin-top"><span class="twin-lot lot-1"></span><span class="twin-lot lot-2"></span><span class="twin-lot lot-3"></span><span class="twin-tree tree-1">♣</span><span class="twin-tree tree-2">♣</span><span class="twin-home">⌂</span></div></div><div class="twin-scale"><span>NW</span><i></i><span>SE</span></div><div class="elevation">ELEVATION <b id="elevationValue">—</b></div><div class="twin-message">3D terrain model preview</div></div><div class="twin-stats"><div><span>LAND AREA</span><b id="landArea">—</b></div><div><span>LAND TYPE</span><b id="landType">—</b></div><div><span>BOUNDARY</span><b id="boundaryStatus">—</b></div></div><p class="twin-note">Terrain visualization is illustrative until elevation data is connected.</p></section>
+    </div>
+
+    <section class="panel risk-panel" id="risk"><div class="panel-heading risk-heading"><div><p class="section-kicker">RISK ENGINE</p><h2>Risk breakdown</h2><p class="panel-subtitle">Five signals that shape your land’s risk score.</p></div><div class="overall-score"><span>OVERALL SCORE</span><b id="riskScoreSmall">—<small>/100</small></b></div></div><div class="risk-categories" id="riskCategories"><div class="loading-row">Loading risk categories from backend…</div></div><div class="dispute-alert" id="disputeAlert"><span class="alert-symbol">!</span><div><b>Dispute status is being checked</b><p>Active disputes may change the final screening decision.</p></div><span class="alert-state">CHECKING</span></div></section>
+
+    <div class="section-grid lower-grid"><section class="panel docs-panel" id="documents"><div class="panel-heading"><div><p class="section-kicker">DOCUMENT VERIFICATION</p><h2>Document health</h2></div><span class="verified-chip" id="verifiedChip">◉ FETCHING</span></div><div class="docs-list" id="documentsList"><div class="loading-row">Verifying documents…</div></div><button class="text-button" id="allDocuments">View all documents <b>→</b></button></section>
+      <section class="panel ai-panel"><div class="panel-heading"><div><p class="section-kicker">AI-STYLE LAND RISK ANALYSIS</p><h2>Analyst’s brief <span class="ai-spark">✳</span></h2></div><span class="ai-badge" id="analysisMethod">RULE-BASED SCREENING</span></div><div class="ai-content" id="aiAnalysis"><div class="loading-row">Generating analysis from land records…</div></div><div class="recommendation" id="recommendation"><span>✦</span><div><b>System recommendation</b><p>Recommendation will appear with analysis.</p></div></div></section></div>
+
+    <section class="panel simulator-panel" id="simulator"><div class="simulator-intro"><div class="sim-icon">⟳</div><div><p class="section-kicker">PLAN WITH CONFIDENCE</p><h2>What-if risk simulator</h2><p>Explore how due diligence steps can affect your screening outlook.</p></div></div><div class="simulator-controls"><label for="simulationStep">IF YOU…</label><select id="simulationStep"><option value="verify">Verify all ownership documents</option><option value="resolve">Resolve the active dispute</option><option value="survey">Order an independent land survey</option><option value="all">Complete all recommended checks</option></select><button class="button button-green" id="simulateButton">Simulate impact <span>→</span></button></div><div class="simulation-result" id="simulationResult" aria-live="polite"><span class="result-spark">✳</span><div><b>Your scenario will appear here</b><p>Simulation is illustrative and does not change the backend risk score.</p></div></div></section>
+    <footer><span>© 2026 LandShield</span><span>Land decisions, made clearer.</span><span>Data provided by your connected risk engine <i></i></span></footer>
+  </main>
+  <dialog class="documents-dialog" id="documentsDialog" aria-labelledby="documentsDialogTitle">
+    <div class="dialog-heading"><div><p class="section-kicker">DOCUMENT SCREENING</p><h2 id="documentsDialogTitle">Land record checks</h2></div><button class="dialog-close" id="closeDocumentsDialog" aria-label="Close document details">×</button></div>
+    <p class="dialog-note" id="documentsDialogNote"></p>
+    <div class="dialog-records" id="documentsDialogBody"></div>
+    <div class="dialog-warning" id="documentsDialogWarning"></div>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+</body>
+</html>
