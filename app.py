@@ -128,10 +128,15 @@ def check_documents(land):
 
     for name, column in (("khatian", "khatian_no"), ("dag", "dag_no")):
         present = bool(str(land[column] or "").strip())
+        detail = f"{name.capitalize()} information is recorded." if present else f"{name.capitalize()} information is missing."
         checks[name] = {
+            "document_name": name.capitalize(),
             "status": "PASS" if present else "FAIL",
             "value_present": present,
-            "message": f"{name.capitalize()} information is recorded." if present else f"{name.capitalize()} information is missing.",
+            "message": detail,
+            "details": detail,
+            "source": "LandShield screening data",
+            "verification_type": "SCREENING ONLY",
         }
         if not present:
             missing_required += 1
@@ -140,10 +145,14 @@ def check_documents(land):
     area_present = land["land_size"] is not None
     area_valid = area_present and land["land_size"] > 0
     checks["land_area"] = {
+        "document_name": "Land area",
         "status": "PASS" if area_valid else "FAIL",
         "value_present": area_present,
         "valid": area_valid,
         "message": "Land area is recorded and greater than zero." if area_valid else "Land area is missing or invalid.",
+        "details": "Land area is recorded and greater than zero." if area_valid else "Land area is missing or invalid.",
+        "source": "LandShield screening data",
+        "verification_type": "SCREENING ONLY",
     }
     if not area_valid:
         missing_required += 1
@@ -164,10 +173,14 @@ def check_documents(land):
         owner_status = "REVIEW"
         owner_message = "Mutation is not recorded as complete; further verification is required."
     checks["ownership"] = {
+        "document_name": "Mutation",
         "status": owner_status,
         "owner_name_present": owner_present,
         "mutation_status": mutation or "unknown",
         "message": owner_message,
+        "details": owner_message,
+        "source": "LandShield screening data",
+        "verification_type": "SCREENING ONLY",
     }
     if owner_status != "PASS":
         warnings.append(owner_message)
@@ -318,7 +331,7 @@ def location_for_land(land):
     note = ("This coordinate is for demonstration only and does not represent an official land parcel location."
             if is_demo else "No coordinates are recorded for this land."
             if not has_coordinates else "These coordinates have not been verified as an official land parcel location.")
-    return {
+    result = {
         "land_id": land["id"],
         "public_land_id": land["land_id"],
         "location": {
@@ -331,6 +344,29 @@ def location_for_land(land):
         },
         "map_note": note,
     }
+    if is_demo:
+        result.update({
+            "boundary_geojson": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [90.2650, 23.8570],
+                    [90.2680, 23.8570],
+                    [90.2680, 23.8600],
+                    [90.2650, 23.8600],
+                    [90.2650, 23.8570],
+                ]],
+            },
+            "boundary_accuracy": "DEMO / APPROXIMATE",
+            "boundary_note": "Illustrative demo boundary only. This is not an official or verified parcel boundary.",
+            "terrain": {
+                "available": True,
+                "source": "DEMO / APPROXIMATE",
+                "surface_type": "flat",
+                "elevation_range_m": {"min": 8, "max": 14},
+            },
+            "terrain_note": "Demo terrain data for visualization only. It is not surveyed elevation data.",
+        })
+    return result
 
 
 @app.route("/api/lands/<land_id>/location")
