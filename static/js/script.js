@@ -6,11 +6,14 @@
     land: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}`,
     risk: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/risk`,
     documents: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/documents`,
-    analysis: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/ai-analysis`
+    analysis: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/ai-analysis`,
+    location: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/location`,
+    whatIf: (id, scenario = {}) => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/what-if${Object.keys(scenario).length ? `?${new URLSearchParams(scenario)}` : ''}`,
+    report: id => `${API_BASE_URL}/api/lands/${encodeURIComponent(id)}/report`
   };
 
   const $ = id => document.getElementById(id);
-  const state = { land: null, risk: null, documents: null, analysis: null, score: null, loadToken: 0 };
+  const state = { land: null, risk: null, documents: null, analysis: null, location: null, report: null, score: null, landId: null, loadToken: 0, map: null, mapLayers: null };
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const pick = (obj, paths, fallback = undefined) => {
     for (const path of paths) {
@@ -50,6 +53,9 @@
     $('aiAnalysis').innerHTML = `<span class="error-text">${escapeHtml(message)}. Check that the backend is running and allows this page’s origin.</span>`;
     $('riskCategories').innerHTML = '<div class="loading-row error-text">Risk data unavailable. Retry when the API is reachable.</div>';
     $('documentsList').innerHTML = '<div class="loading-row error-text">Document data unavailable.</div>';
+    $('mapLoading').textContent = 'Location data unavailable. Retry when the API is reachable.';
+    $('mapAccuracy').innerHTML = '<i></i> LOCATION UNAVAILABLE';
+    $('reportContent').innerHTML = `<p class="error-text">${escapeHtml(message)}. Consolidated report unavailable.</p>`;
     $('screeningResult').textContent = 'UNAVAILABLE';
     $('screeningNote').textContent = 'Screening requires a response from the risk API.';
     $('verifiedChip').textContent = 'API ERROR';
@@ -71,77 +77,82 @@
 
   async function loadLand(id) {
     const token = ++state.loadToken;
-    const results = await Promise.allSettled([request(API.land(id)), request(API.risk(id)), request(API.documents(id)), request(API.analysis(id))]);
+    $('simulationResult').innerHTML = '<span class="result-spark">✳</span><div><b>Choose a scenario to calculate its risk score</b><p>Results load from the backend What-If API.</p></div>';
+    const results = await Promise.allSettled([request(API.land(id)), request(API.risk(id)), request(API.documents(id)), request(API.analysis(id)), request(API.location(id)), request(API.report(id))]);
     if (token !== state.loadToken) return;
     const errors = results.filter(result => result.status === 'rejected');
     state.land = results[0].status === 'fulfilled' ? unwrap(results[0].value, ['land', 'data']) : null;
     state.risk = results[1].status === 'fulfilled' ? unwrap(results[1].value, ['risk', 'data']) : null;
     state.documents = results[2].status === 'fulfilled' ? unwrap(results[2].value, ['documents', 'verification', 'data']) : null;
     state.analysis = results[3].status === 'fulfilled' ? unwrap(results[3].value, ['analysis', 'result', 'data']) : null;
-    if (errors.length && !state.land && !state.risk && !state.documents && !state.analysis) {
+    state.location = results[4].status === 'fulfilled' ? unwrap(results[4].value, ['location_data', 'data']) : null;
+    state.report = results[5].status === 'fulfilled' ? unwrap(results[5].value, ['report', 'data']) : null;
+    state.landId = id;
+    if (errors.length && !state.land && !state.risk && !state.documents && !state.analysis && !state.location && !state.report) {
       const error = errors[0].reason; throw new Error(error.message || 'The API could not be reached');
     }
     renderLand(id); renderRisk(); renderDocuments(); renderAnalysis();
+    renderReport();
     if (errors.length) toast(`${errors.length} endpoint${errors.length > 1 ? 's' : ''} could not be loaded; available data is shown.`);
   }
 
   function renderLand(id) {
     const land = state.land || {};
+    const locationData = state.location || {};
+    const location = locationData.location || {};
     $('parcelId').textContent = first(land.parcel_id, land.land_id, land.id, id);
     $('mapParcelId').textContent = first(land.parcel_id, land.land_id, land.id, id);
-    $('landLocation').textContent = first(land.location, land.address, [land.mouza, land.upazila, land.district].filter(Boolean).join(', '), land.area_name, land.district, 'Location not supplied by API');
-    $('landMeta').textContent = [land.owner_name ? `Owner: ${land.owner_name}` : null, land.khatian_no ? `Khatian ${land.khatian_no}` : null, land.dag_no ? `Dag ${land.dag_no}` : null].filter(Boolean).join(' · ') || 'Land parcel details from registry';
+    $('landLocation').textContent = first([location.mouza || land.mouza, location.upazila || land.upazila, location.district || land.district].filter(Boolean).join(', '), land.location, land.address, land.area_name, land.district, 'Location not supplied by API');
+    $('landMeta').textContent = [land.owner_name ? `Owner: ${land.owner_name}` : null, land.khatian_no ? `Khatian ${land.khatian_no}` : null, land.dag_no ? `Dag ${land.dag_no}` : null, location.accuracy].filter(Boolean).join(' · ') || 'Land parcel details from registry';
     const size = first(land.land_size, land.area, land.land_area, land.size);
     const unit = first(land.area_unit, land.land_size_unit, land.unit);
     $('landArea').textContent = size === undefined ? 'Not provided' : `${size}${unit ? ` ${unit}` : ' (unit not provided)'}`;
     $('landType').textContent = titleCase(first(land.land_type, land.type, land.category, 'Not provided'));
-    $('boundaryStatus').textContent = titleCase(first(land.boundary_status, land.boundary, land.survey_status, 'Not provided'));
-    $('elevationValue').textContent = first(land.elevation ? `${land.elevation} m` : null, land.elevation_meters ? `${land.elevation_meters} m` : null, 'Not provided');
-    renderMapGeometry(land);
+    $('boundaryStatus').textContent = titleCase(first(locationData.boundary_accuracy, land.boundary_status, land.boundary, land.survey_status, 'Not provided'));
+    const elevation = locationData.terrain?.elevation_range_m;
+    $('elevationValue').textContent = elevation ? `${elevation.min}–${elevation.max} m` : first(land.elevation ? `${land.elevation} m` : null, land.elevation_meters ? `${land.elevation_meters} m` : null, 'Not provided');
+    $('terrainAccuracy').textContent = first(locationData.terrain?.source, location.accuracy, 'DEMO / APPROXIMATE');
+    $('terrainType').textContent = first(locationData.terrain?.surface_type, 'Terrain data unavailable');
+    $('terrainNote').textContent = first(locationData.terrain_note, 'Demo visualization only; not surveyed elevation data.');
+    renderMap(land, locationData);
   }
 
-  function renderMapGeometry(land) {
-    const svg = document.querySelector('.map-svg');
-    svg.querySelectorAll('.dynamic-parcel').forEach(path => path.remove());
-    const sampleParcel = svg.querySelector('.parcel');
-    sampleParcel.style.display = '';
-    let geometry = first(land.boundary_geojson, land.geojson, land.geometry, land.coordinates);
-    if (typeof geometry === 'string') {
-      try { geometry = JSON.parse(geometry); } catch { geometry = null; }
-    }
-    if (geometry?.type === 'Feature') geometry = geometry.geometry;
-    if (geometry?.geometry) geometry = geometry.geometry;
-    let polygons = [];
-    if (geometry?.type === 'Polygon' && Array.isArray(geometry.coordinates)) polygons = [geometry.coordinates];
-    else if (geometry?.type === 'MultiPolygon' && Array.isArray(geometry.coordinates)) polygons = geometry.coordinates;
-    else if (Array.isArray(land.boundary_coordinates)) polygons = [[land.boundary_coordinates]];
-
-    const rings = polygons.flatMap(polygon => polygon).map(ring => ring.map(point => {
-      if (Array.isArray(point)) return [Number(point[0]), Number(point[1])];
-      if (point && typeof point === 'object') return [Number(first(point.longitude, point.lng, point.lon)), Number(first(point.latitude, point.lat))];
-      return [NaN, NaN];
-    }).filter(point => point.every(Number.isFinite))).filter(ring => ring.length >= 3);
-    const notice = $('mapLoading');
-    notice.style.display = 'block';
-    if (!rings.length) {
-      notice.textContent = 'Illustrative preview — parcel geometry not provided by API.';
+  function renderMap(land, locationData) {
+    const location = locationData.location || {};
+    const latitude = Number(location.latitude), longitude = Number(location.longitude);
+    const hasCoordinates = location.latitude !== null && location.latitude !== undefined && location.longitude !== null && location.longitude !== undefined && Number.isFinite(latitude) && Number.isFinite(longitude);
+    const geometry = locationData.boundary_geojson || land.boundary_geojson || land.geojson || land.geometry;
+    const note = first(locationData.boundary_note, locationData.map_note, 'Coordinates and boundary are approximate demo data.');
+    $('mapAccuracy').innerHTML = `<i></i> ${escapeHtml(first(location.accuracy, 'LOCATION STATUS UNKNOWN'))} · ${escapeHtml(first(locationData.boundary_accuracy, location.accuracy, 'BOUNDARY UNVERIFIED'))}`;
+    $('mapLoading').textContent = note;
+    if (!window.L || !hasCoordinates) {
+      $('realMap').style.display = 'none';
+      $('mapFallback').style.display = 'block';
+      $('mapLoading').textContent = !hasCoordinates ? 'No coordinates returned. Showing an illustrative preview.' : 'Map library unavailable. Showing an illustrative preview.';
       return;
     }
-
-    const points = rings.flat();
-    const xs = points.map(point => point[0]), ys = points.map(point => point[1]);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const width = maxX - minX || 1, height = maxY - minY || 1;
-    const scale = Math.min(520 / width, 210 / height);
-    sampleParcel.style.display = 'none';
-    for (const ring of rings) {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const pointsOnCanvas = ring.map(([x, y]) => [120 + (x - minX) * scale, 55 + (maxY - y) * scale]);
-      path.setAttribute('class', 'parcel dynamic-parcel');
-      path.setAttribute('d', pointsOnCanvas.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + ' Z');
-      svg.appendChild(path);
+    $('mapFallback').style.display = 'none';
+    $('realMap').style.display = 'block';
+    if (!state.map) {
+      state.map = L.map('realMap', { zoomControl: false, scrollWheelZoom: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(state.map);
+      state.mapLayers = L.featureGroup().addTo(state.map);
     }
-    notice.textContent = 'Parcel boundary from API · map backdrop is illustrative.';
+    state.mapLayers.clearLayers();
+    L.marker([latitude, longitude]).bindPopup(`${escapeHtml($('parcelId').textContent)} · ${escapeHtml(first(location.accuracy, 'Unverified coordinates'))}`).addTo(state.mapLayers);
+    if (geometry) {
+      try {
+        const boundary = L.geoJSON(geometry, { style: { color: '#28784d', weight: 3, fillColor: '#68a977', fillOpacity: 0.25, dashArray: '6 4' } });
+        boundary.addTo(state.mapLayers);
+      } catch { toast('Boundary data could not be rendered; showing coordinates only.'); }
+    }
+    const bounds = state.mapLayers.getBounds();
+    if (bounds.isValid()) state.map.fitBounds(bounds.pad(0.5), { maxZoom: 18 });
+    else state.map.setView([latitude, longitude], 17);
+    setTimeout(() => state.map.invalidateSize(), 0);
   }
 
   function renderRisk() {
@@ -215,6 +226,69 @@
     $('recommendation').innerHTML = `<span>✦</span><div><b>System recommendation</b><p>${escapeHtml(Array.isArray(recommendation) ? recommendation.join(' · ') : first(recommendation, 'No recommendation was returned by the analysis API.'))}</p></div>`;
   }
 
+  function renderReport() {
+    const report = state.report;
+    if (!report) {
+      $('reportContent').innerHTML = '<p class="loading-row">The report endpoint is unavailable. Refresh after the backend is updated.</p>';
+      return;
+    }
+    const land = report.land_information || {};
+    const risk = report.risk || {};
+    const categories = risk.categories && typeof risk.categories === 'object' ? Object.entries(risk.categories) : [];
+    const docs = report.document_verification || {};
+    const checks = docs.checks && typeof docs.checks === 'object' ? Object.entries(docs.checks) : [];
+    const analysis = report.ai_analysis || {};
+    const scenarios = asArray(report.what_if?.examples);
+    const recommendation = report.final_recommendation || {};
+    const location = report.location || state.location?.location || {};
+    const terrain = state.location?.terrain || {};
+    const infoRows = [
+      ['Owner', land.owner_name], ['Location', [land.mouza, land.upazila, land.district].filter(Boolean).join(', ')],
+      ['Khatian', land.khatian_no], ['Dag', land.dag_no], ['Land area', land.land_size === null || land.land_size === undefined ? null : `${land.land_size} (unit not provided)`],
+      ['Mutation', land.mutation_status], ['Dispute', land.dispute_status],
+      ['Acquisition', land.acquisition_status], ['Khas status', land.khas_status]
+    ].filter(([, value]) => value !== null && value !== undefined && value !== '');
+    $('reportContent').innerHTML = `
+      <div class="report-summary"><div><span>LAND ID</span><b>${escapeHtml(first(report.public_land_id, report.land_id, '—'))}</b></div><div><span>RISK SCORE</span><b>${escapeHtml(risk.overall_score ?? '—')}/100 · ${escapeHtml(first(risk.risk_level, '—'))}</b></div><div><span>SCREENING</span><b>${escapeHtml(first(recommendation.decision, risk.screening_result, '—'))}</b></div></div>
+      <div class="report-columns">
+        <section><h3>Land information</h3><dl class="report-fields">${infoRows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(titleCase(value))}</dd></div>`).join('') || '<p>Land information unavailable.</p>'}</dl><p class="report-small">Coordinates: ${escapeHtml(location.latitude ?? '—')}, ${escapeHtml(location.longitude ?? '—')} · ${escapeHtml(first(location.accuracy, 'Unverified'))}</p><p class="report-small">Boundary: ${escapeHtml(first(state.location?.boundary_accuracy, 'Not provided'))} · ${escapeHtml(first(state.location?.boundary_note, report.map_note, 'Boundary not verified.'))}</p><p class="report-small">Terrain: ${escapeHtml(first(terrain.surface_type, 'Not provided'))} · ${escapeHtml(terrain.elevation_range_m ? `${terrain.elevation_range_m.min}–${terrain.elevation_range_m.max} m` : 'Elevation not provided')} · ${escapeHtml(first(terrain.source, state.location?.terrain_note, 'Unverified'))}</p></section>
+        <section><h3>Risk categories</h3>${categories.map(([name, value]) => `<div class="report-risk"><span>${escapeHtml(titleCase(name))}</span><b>${escapeHtml(value.score)}/100 · ${escapeHtml(value.status)}</b></div>`).join('') || '<p>Risk categories unavailable.</p>'}</section>
+        <section><h3>Document screening · ${escapeHtml(first(docs.verification_status, 'UNAVAILABLE'))}</h3>${checks.map(([name, value]) => `<div class="report-risk"><span>${escapeHtml(first(value.document_name, titleCase(name)))}</span><b>${escapeHtml(value.status)}</b><small>${escapeHtml([first(value.details, value.message, ''), value.source ? `Source: ${value.source}` : '', value.verification_type || ''].filter(Boolean).join(' · '))}</small></div>`).join('') || '<p>Document checks unavailable.</p>'}<p class="report-small">${escapeHtml(first(docs.message, 'Screening only. Confirm document authenticity with official records.'))}</p></section>
+        <section><h3>Analysis & recommendation</h3><p>${escapeHtml(first(analysis.summary, 'Analysis unavailable.'))}</p><p><b>${escapeHtml(first(recommendation.reason, analysis.recommendation, ''))}</b></p><ul>${asArray(first(recommendation.priority_actions, analysis.recommended_actions, [])).map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+        <section><h3>What-if scenarios</h3>${scenarios.map(item => `<div class="report-risk"><span>${escapeHtml(item.scenario)}</span><b>${escapeHtml(item.overall_score)}/100 · ${escapeHtml(item.risk_level)}</b></div>`).join('') || '<p>Scenario results unavailable.</p>'}<p class="report-small">${escapeHtml(first(report.what_if?.description, 'Hypothetical scenarios only.'))}</p></section>
+      </div><p class="report-disclaimer">${escapeHtml(first(report.disclaimer, analysis.disclaimer, 'Decision-support screening only. Verify with official sources.'))}</p>`;
+  }
+
+  async function simulateSelectedScenario() {
+    const id = state.landId;
+    if (!id) return toast('Select a land parcel first.');
+    const selection = $('simulationStep').value;
+    const scenarios = {
+      current: {},
+      dispute: { dispute: 'resolved' },
+      mutation: { mutation: 'complete' },
+      both: { dispute: 'resolved', mutation: 'complete' }
+    };
+    const button = $('simulateButton');
+    button.disabled = true;
+    button.querySelector('span').textContent = '…';
+    try {
+      const result = await request(API.whatIf(id, scenarios[selection]));
+      const current = result.current || {};
+      const simulated = result.simulated || {};
+      const delta = Number(simulated.overall_score) - Number(current.overall_score);
+      const changeText = !Number.isFinite(delta) ? 'score comparison unavailable' : delta < 0 ? `${Math.abs(delta)} points lower` : delta > 0 ? `${delta} points higher` : 'no score change';
+      $('simulationResult').classList.add('active');
+      $('simulationResult').innerHTML = `<span class="result-spark">✳</span><div class="simulation-copy"><b>${escapeHtml(first(result.explanation, 'Hypothetical result from the risk engine.'))}</b><div class="simulation-scores"><span>Current <strong>${escapeHtml(current.overall_score ?? '—')}/100</strong></span><span>Scenario <strong>${escapeHtml(simulated.overall_score ?? '—')}/100</strong></span><span class="scenario-delta">${escapeHtml(changeText)}</span></div><p>${escapeHtml(asArray(result.changes).join(' '))} This scenario is hypothetical; stored land records are unchanged.</p></div>`;
+    } catch (error) {
+      $('simulationResult').classList.add('active');
+      $('simulationResult').innerHTML = `<span class="result-spark">!</span><div><b>Simulator API unavailable</b><p>${escapeHtml(error.message)}. Check the What-If endpoint and try again.</p></div>`;
+    } finally {
+      button.disabled = false;
+      button.querySelector('span').textContent = '→';
+    }
+  }
+
   async function refresh() {
     const button = $('refreshButton'); button.disabled = true; button.querySelector('span').textContent = '…';
     try {
@@ -225,21 +299,63 @@
     finally { button.disabled = false; button.querySelector('span').textContent = '↻'; }
   }
 
+  async function refreshReport() {
+    if (!state.landId) return toast('Select a land parcel first.');
+    $('refreshReport').disabled = true;
+    try {
+      state.report = await request(API.report(state.landId));
+      renderReport();
+      toast('Final report updated from backend.');
+    } catch (error) {
+      $('reportContent').innerHTML = `<p class="error-text">${escapeHtml(error.message)}. Report endpoint unavailable.</p>`;
+      toast('Could not refresh the report.');
+    } finally { $('refreshReport').disabled = false; }
+  }
+
+  function setupTwinControls() {
+    const scene = $('twinScene');
+    const model = scene.querySelector('.twin-land');
+    let rotation = -30, zoom = 1, dragX = null, startRotation = rotation;
+    const paint = () => { model.style.transform = `perspective(700px) rotateX(52deg) rotateZ(${rotation}deg) scale(${zoom})`; };
+    scene.addEventListener('pointerdown', event => {
+      dragX = event.clientX; startRotation = rotation; scene.setPointerCapture(event.pointerId); scene.classList.add('dragging');
+    });
+    scene.addEventListener('pointermove', event => {
+      if (dragX === null) return;
+      rotation = startRotation + (event.clientX - dragX) * 0.7; paint();
+    });
+    const endDrag = () => { dragX = null; scene.classList.remove('dragging'); };
+    scene.addEventListener('pointerup', endDrag);
+    scene.addEventListener('pointercancel', endDrag);
+    scene.addEventListener('wheel', event => {
+      event.preventDefault(); zoom = Math.max(0.72, Math.min(1.45, zoom + (event.deltaY < 0 ? 0.06 : -0.06))); paint();
+    }, { passive: false });
+    scene.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { rotation += event.key === 'ArrowLeft' ? -8 : 8; paint(); event.preventDefault(); }
+      if (event.key === '+' || event.key === '=') { zoom = Math.min(1.45, zoom + 0.08); paint(); }
+      if (event.key === '-') { zoom = Math.max(0.72, zoom - 0.08); paint(); }
+    });
+  }
+
   $('refreshButton').addEventListener('click', refresh);
   $('landSelect').addEventListener('change', event => loadLand(event.target.value).catch(error => { fail(error.message); toast(error.message); }));
-  $('simulateButton').addEventListener('click', () => {
-    const action = $('simulationStep').value;
-    const names = { verify: 'verify all ownership documents', resolve: 'resolve the active dispute', survey: 'order an independent land survey', all: 'complete all recommended checks' };
-    const result = $('simulationResult');
-    result.classList.add('active');
-    const advice = action === 'resolve' || action === 'all' ? 'The dispute flag is a key screening concern. Ask the relevant authority for written resolution and have ownership records independently checked before proceeding.' : action === 'verify' ? 'Document verification can confirm record consistency. Request certified copies and resolve every mismatch with the issuing authority.' : 'An independent survey can clarify parcel boundaries and reveal encroachments. Compare the survey with registered deeds and official maps.';
-    result.innerHTML = `<span class="result-spark">✳</span><div><b>Scenario: If you ${escapeHtml(names[action])}</b><p>${escapeHtml(advice)} Current backend score remains ${state.score === null ? 'unavailable' : `${state.score}/100`}; this scenario is guidance, not a recalculated score.</p></div>`;
+  $('simulateButton').addEventListener('click', simulateSelectedScenario);
+  $('refreshReport').addEventListener('click', refreshReport);
+  $('printReport').addEventListener('click', () => { document.body.classList.add('printing-report'); window.print(); });
+  window.addEventListener('afterprint', () => document.body.classList.remove('printing-report'));
+  $('mapExpand').addEventListener('click', () => {
+    $('mapShell').classList.toggle('expanded');
+    $('mapExpand').textContent = $('mapShell').classList.contains('expanded') ? '⛶ Collapse map' : '⛶ Expand map';
+    if (state.map) setTimeout(() => state.map.invalidateSize(), 80);
   });
-  $('mapExpand').addEventListener('click', () => { $('mapShell').classList.toggle('expanded'); $('mapExpand').textContent = $('mapShell').classList.contains('expanded') ? '⛶ Collapse map' : '⛶ Expand map'; });
   let zoom = 1; const mapSvg = document.querySelector('.map-svg');
-  $('zoomIn').addEventListener('click', () => { zoom = Math.min(1.65, zoom + .12); mapSvg.style.transform = `scale(${zoom})`; });
-  $('zoomOut').addEventListener('click', () => { zoom = Math.max(.8, zoom - .12); mapSvg.style.transform = `scale(${zoom})`; });
-  $('locateMap').addEventListener('click', () => { zoom = 1; mapSvg.style.transform = ''; toast('Selected parcel centered'); });
+  $('zoomIn').addEventListener('click', () => { if (state.map) state.map.zoomIn(); else { zoom = Math.min(1.65, zoom + .12); mapSvg.style.transform = `scale(${zoom})`; } });
+  $('zoomOut').addEventListener('click', () => { if (state.map) state.map.zoomOut(); else { zoom = Math.max(.8, zoom - .12); mapSvg.style.transform = `scale(${zoom})`; } });
+  $('locateMap').addEventListener('click', () => {
+    const loc = state.location?.location || {};
+    if (state.map && Number.isFinite(Number(loc.latitude)) && Number.isFinite(Number(loc.longitude))) state.map.setView([Number(loc.latitude), Number(loc.longitude)], 17);
+    else { zoom = 1; mapSvg.style.transform = ''; }
+  });
   $('mapDetails').addEventListener('click', () => $('land-details').scrollIntoView({ behavior: 'smooth', block: 'center' }));
   $('allDocuments').addEventListener('click', () => {
     const response = state.documents || {};
@@ -260,5 +376,6 @@
   });
   $('closeDocumentsDialog').addEventListener('click', () => $('documentsDialog').close());
   $('documentsDialog').addEventListener('click', event => { if (event.target === $('documentsDialog')) $('documentsDialog').close(); });
+  setupTwinControls();
   refresh();
 })();
