@@ -2,7 +2,7 @@ import sqlite3
 import re
 from pathlib import Path
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
@@ -128,10 +128,15 @@ def check_documents(land):
 
     for name, column in (("khatian", "khatian_no"), ("dag", "dag_no")):
         present = bool(str(land[column] or "").strip())
+        detail = f"{name.capitalize()} information is recorded." if present else f"{name.capitalize()} information is missing."
         checks[name] = {
+            "document_name": name.capitalize(),
             "status": "PASS" if present else "FAIL",
             "value_present": present,
-            "message": f"{name.capitalize()} information is recorded." if present else f"{name.capitalize()} information is missing.",
+            "message": detail,
+            "details": detail,
+            "source": "LandShield screening data",
+            "verification_type": "SCREENING ONLY",
         }
         if not present:
             missing_required += 1
@@ -140,10 +145,14 @@ def check_documents(land):
     area_present = land["land_size"] is not None
     area_valid = area_present and land["land_size"] > 0
     checks["land_area"] = {
+        "document_name": "Land area",
         "status": "PASS" if area_valid else "FAIL",
         "value_present": area_present,
         "valid": area_valid,
         "message": "Land area is recorded and greater than zero." if area_valid else "Land area is missing or invalid.",
+        "details": "Land area is recorded and greater than zero." if area_valid else "Land area is missing or invalid.",
+        "source": "LandShield screening data",
+        "verification_type": "SCREENING ONLY",
     }
     if not area_valid:
         missing_required += 1
@@ -164,10 +173,14 @@ def check_documents(land):
         owner_status = "REVIEW"
         owner_message = "Mutation is not recorded as complete; further verification is required."
     checks["ownership"] = {
+        "document_name": "Mutation",
         "status": owner_status,
         "owner_name_present": owner_present,
         "mutation_status": mutation or "unknown",
         "message": owner_message,
+        "details": owner_message,
+        "source": "LandShield screening data",
+        "verification_type": "SCREENING ONLY",
     }
     if owner_status != "PASS":
         warnings.append(owner_message)
@@ -309,6 +322,178 @@ def get_land_ai_analysis(land_id):
     if land is None:
         return jsonify({"error": "Land not found."}), 404
     return jsonify(analyze_land(land))
+
+
+def location_for_land(land):
+    is_demo = land["land_id"] == "DEMO-001" and land["latitude"] is not None and land["longitude"] is not None
+    has_coordinates = land["latitude"] is not None and land["longitude"] is not None
+    accuracy = "DEMO / APPROXIMATE" if is_demo else "UNVERIFIED" if has_coordinates else "NOT AVAILABLE"
+    note = ("This coordinate is for demonstration only and does not represent an official land parcel location."
+            if is_demo else "No coordinates are recorded for this land."
+            if not has_coordinates else "These coordinates have not been verified as an official land parcel location.")
+    result = {
+        "land_id": land["id"],
+        "public_land_id": land["land_id"],
+        "location": {
+            "latitude": land["latitude"],
+            "longitude": land["longitude"],
+            "district": land["district"],
+            "upazila": land["upazila"],
+            "mouza": land["mouza"],
+            "accuracy": accuracy,
+        },
+        "map_note": note,
+    }
+    if is_demo:
+        result.update({
+            "boundary_geojson": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [90.2650, 23.8570],
+                    [90.2680, 23.8570],
+                    [90.2680, 23.8600],
+                    [90.2650, 23.8600],
+                    [90.2650, 23.8570],
+                ]],
+            },
+            "boundary_accuracy": "DEMO / APPROXIMATE",
+            "boundary_note": "Illustrative demo boundary only. This is not an official or verified parcel boundary.",
+            "terrain": {
+                "available": True,
+                "source": "DEMO / APPROXIMATE",
+                "surface_type": "flat",
+                "elevation_range_m": {"min": 8, "max": 14},
+            },
+            "terrain_note": "Demo terrain data for visualization only. It is not surveyed elevation data.",
+        })
+    return result
+
+
+@app.route("/api/lands/<land_id>/location")
+def get_land_location(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+    return jsonify(location_for_land(land))
+
+
+def simulate_land_risk(land, scenario):
+    """Apply hypothetical statuses to an in-memory copy, never to SQLite."""
+    current = calculate_risk(land)
+    simulated_land = dict(land)
+    changes = []
+    for name, column in (("dispute", "dispute_status"), ("mutation", "mutation_status")):
+        if name in scenario:
+            new_value = scenario[name]
+            old_value = str(land[column] or "unknown")
+            if old_value != new_value:
+                simulated_land[column] = new_value
+                changes.append(f"{name.capitalize()} status: {old_value} to {new_value}.")
+
+    simulated = calculate_risk(simulated_land)
+    difference = simulated["overall_score"] - current["overall_score"]
+    if difference < 0:
+        explanation = f"Hypothetical risk decreases by {-difference} points."
+    elif difference > 0:
+        explanation = f"Hypothetical risk increases by {difference} points."
+    else:
+        explanation = "Hypothetical risk score is unchanged."
+    explanation += " This simulation does not change stored land data or confirm that a condition has changed."
+
+    return {
+        "land_id": land["id"],
+        "public_land_id": land["land_id"],
+        "current": {"overall_score": current["overall_score"], "risk_level": current["risk_level"]},
+        "scenario": scenario,
+        "simulated": {"overall_score": simulated["overall_score"], "risk_level": simulated["risk_level"]},
+        "changes": changes,
+        "explanation": explanation,
+    }
+
+
+@app.route("/api/lands/<land_id>/what-if")
+def get_land_what_if(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+
+    allowed = {"dispute": {"resolved", "active"}, "mutation": {"complete", "pending"}}
+    for name in request.args:
+        values = request.args.getlist(name)
+        if name not in allowed:
+            return jsonify({"error": f"Unsupported scenario parameter: {name}."}), 400
+        if len(values) != 1 or values[0] not in allowed[name]:
+            return jsonify({"error": f"Invalid {name} value; allowed values: {', '.join(sorted(allowed[name]))}."}), 400
+
+    scenario = {name: request.args[name] for name in ("dispute", "mutation") if name in request.args}
+    return jsonify(simulate_land_risk(land, scenario))
+
+
+@app.route("/api/lands/<land_id>/report")
+def get_land_report(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+
+    risk = calculate_risk(land)
+    documents = check_documents(land)
+    analysis = analyze_land(land)
+    location = location_for_land(land)
+    examples = []
+    for description, scenario in (
+        ("Current condition", {}),
+        ("If dispute is resolved", {"dispute": "resolved"}),
+        ("If mutation is completed", {"mutation": "complete"}),
+        ("If dispute is resolved and mutation is completed", {"dispute": "resolved", "mutation": "complete"}),
+    ):
+        result = simulate_land_risk(land, scenario)["simulated"]
+        examples.append({"scenario": description, **result})
+
+    if risk["screening_result"].startswith("HIGH RISK"):
+        decision = "DO NOT PROCEED UNTIL VERIFIED"
+    elif risk["screening_result"] == "FURTHER VERIFICATION REQUIRED":
+        decision = "FURTHER VERIFICATION REQUIRED"
+    else:
+        decision = "LOW-RISK SCREENING RESULT"
+
+    return jsonify({
+        "land_id": land["id"],
+        "public_land_id": land["land_id"],
+        "land_information": {
+            "owner_name": land["owner_name"],
+            "district": land["district"],
+            "upazila": land["upazila"],
+            "mouza": land["mouza"],
+            "khatian_no": land["khatian_no"],
+            "dag_no": land["dag_no"],
+            "land_size": land["land_size"],
+            "mutation_status": land["mutation_status"],
+            "dispute_status": land["dispute_status"],
+            "acquisition_status": land["acquisition_status"],
+            "khas_status": land["khas_status"],
+        },
+        "location": location["location"],
+        "map_note": location["map_note"],
+        "risk": risk,
+        "document_verification": documents,
+        "ai_analysis": analysis,
+        "what_if": {
+            "description": "Hypothetical scenario examples. These do not change stored land data.",
+            "examples": examples,
+        },
+        "final_recommendation": {
+            "decision": decision,
+            "reason": analysis["recommendation"],
+            "priority_actions": analysis["recommended_actions"],
+        },
+        "disclaimer": "LandShield provides decision-support screening only. It is not legal advice and does not replace official government or legal verification.",
+    })
 
 
 @app.errorhandler(sqlite3.Error)
