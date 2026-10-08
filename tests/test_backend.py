@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sqlite3
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
@@ -140,6 +141,31 @@ class BackendTests(unittest.TestCase):
         self.assertIn(backend.SCREENING_DISCLAIMER, report['disclaimer'])
         print('Report decision:', report['final_recommendation']['decision'])
 
+    def test_live_search(self):
+        queries = ['', 'district=Dhaka', 'upazila=Savar', 'mouza=Demo%20Mouza',
+                   'risk_level=MEDIUM', 'district=Dhaka&upazila=Savar',
+                   'district=Dhaka&risk_level=MEDIUM',
+                   'district=Dhaka&upazila=Savar&risk_level=MEDIUM',
+                   'owner_name=demo', 'district=dh', 'risk_level=medium']
+        for query in queries:
+            with self.subTest(query=query):
+                status, result = fetch('/api/lands/search?' + query)
+                self.assertEqual(status, 200)
+                self.assertEqual(result['count'], len(result['lands']))
+                self.assertIn(self.land['land_id'], [row['land_id'] for row in result['lands']])
+                for row in result['lands']:
+                    risk = fetch('/api/lands/' + row['land_id'] + '/risk')[1]
+                    self.assertEqual(row['risk_score'], risk['overall_score'])
+                    self.assertEqual(row['risk_level'], risk['risk_level'])
+                print('Search:', query or '(all)', result['count'], 'result(s)')
+        status, result = fetch('/api/lands/search?risk_level=INVALID')
+        self.assertEqual(status, 400)
+        self.assertIn('error', result)
+        status, result = fetch('/api/lands/search?district=NO-MATCH-DISTRICT')
+        self.assertEqual(status, 200)
+        self.assertEqual(result['lands'], [])
+        self.assertEqual(result['count'], 0)
+
     def test_database_error_is_json(self):
         with patch.object(backend, 'get_db', side_effect=sqlite3.OperationalError('test failure')):
             response = backend.app.test_client().get('/api/lands')
@@ -149,6 +175,144 @@ class BackendTests(unittest.TestCase):
             response = backend.app.test_client().get('/api/lands/DEMO-001')
             self.assertEqual(response.status_code, 500)
             self.assertEqual(response.get_json(), {'error':'Internal server error.'})
+
+class SearchTests(unittest.TestCase):
+    """Exercise SQL against an isolated database; never change project records."""
+    def setUp(self):
+        with backend.get_db() as conn:
+            schema = conn.execute("SELECT sql FROM sqlite_master WHERE name = ?", ('land',)).fetchone()[0]
+            base = dict(conn.execute('SELECT * FROM land ORDER BY id LIMIT 1').fetchone())
+        conn.close()
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / 'search.db'
+        self.rows = [
+            dict(base, id=101, land_id='SEARCH-A', owner_name='Alice Example', district='Dhaka',
+                 upazila='Savar', mouza='North Mouza', mutation_status='complete', dispute_status='clear',
+                 acquisition_status='clear', khas_status='no'),
+            dict(base, id=102, land_id='SEARCH-B', owner_name='BOB EXAMPLE', district='Dhaka',
+                 upazila='Dhamrai', mouza=None, mutation_status='pending', dispute_status='resolved',
+                 acquisition_status='clear', khas_status='no'),
+            dict(base, id=103, land_id='SEARCH-C', owner_name='Straße Owner', district='Chattogram',
+                 upazila='Savar', mouza='South Mouza', mutation_status='conflict', dispute_status='active',
+                 acquisition_status='active', khas_status='yes'),
+            dict(base, id=104, land_id='SPECIAL-%_ID', owner_name="O'Neil %_", district='Sylhet',
+                 upazila='Central', mouza='Literal', mutation_status='complete', dispute_status='clear',
+                 acquisition_status='clear', khas_status='no'),
+        ]
+        with sqlite3.connect(self.path) as conn:
+            conn.execute(schema)
+            columns = tuple(base)
+            query = 'INSERT INTO land (' + ', '.join(columns) + ') VALUES (' + ', '.join('?' for _ in columns) + ')'
+            conn.executemany(query, [tuple(row[column] for column in columns) for row in self.rows])
+        conn.close()
+        self.before = hashlib.sha256(self.path.read_bytes()).hexdigest()
+        def connection():
+            conn = sqlite3.connect(self.path.as_uri() + '?mode=ro', uri=True)
+            conn.row_factory = sqlite3.Row
+            return conn
+        patcher = patch.object(backend, 'get_db', side_effect=connection)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.client = backend.app.test_client()
+
+    def tearDown(self):
+        self.assertEqual(hashlib.sha256(self.path.read_bytes()).hexdigest(), self.before)
+
+    def search(self, filters=None):
+        response = self.client.get('/api/lands/search', query_string=filters or {})
+        self.assertEqual(response.status_code, 200)
+        result = response.get_json()
+        self.assertEqual(result['count'], len(result['lands']))
+        return result
+
+    def assert_ids(self, result, *ids):
+        self.assertEqual([row['id'] for row in result['lands']], list(ids))
+
+    def test_search_all_and_response_format(self):
+        result = self.search()
+        self.assert_ids(result, 101, 102, 103, 104)
+        self.assertEqual(result['filters'], dict.fromkeys(('land_id','district','upazila','mouza','owner_name','risk_level')))
+        for original, row in zip(self.rows, result['lands']):
+            risk = backend.calculate_risk(original)
+            self.assertEqual(set(row), {'id','land_id','owner_name','district','upazila','mouza','risk_score','risk_level'})
+            self.assertEqual(row['risk_score'], risk['overall_score'])
+            self.assertEqual(row['risk_level'], risk['risk_level'])
+
+    def test_district_filter(self):
+        self.assert_ids(self.search({'district':'Dhaka'}), 101, 102)
+
+    def test_upazila_filter(self):
+        self.assert_ids(self.search({'upazila':'Savar'}), 101, 103)
+
+    def test_mouza_filter(self):
+        self.assert_ids(self.search({'mouza':'Mouza'}), 101, 103)
+
+    def test_owner_filter(self):
+        self.assert_ids(self.search({'owner_name':'Alice'}), 101)
+
+    def test_case_insensitive_partial_and_unicode(self):
+        for filters, ids in [({'district':'dH'}, (101,102)), ({'owner_name':'bob'}, (102,)),
+                             ({'mouza':'nOrTh'}, (101,)), ({'owner_name':'STRASSE'}, (103,))]:
+            with self.subTest(filters=filters):
+                self.assert_ids(self.search(filters), *ids)
+
+    def test_risk_filters_use_existing_engine(self):
+        for level in ('LOW','MEDIUM','HIGH'):
+            expected = [row['id'] for row in self.rows if backend.calculate_risk(row)['risk_level'] == level]
+            self.assertTrue(expected)
+            result = self.search({'risk_level':level.lower()})
+            self.assert_ids(result, *expected)
+            self.assertEqual(result['filters']['risk_level'], level)
+
+    def test_multiple_filters_are_and(self):
+        self.assert_ids(self.search({'district':'Dhaka','upazila':'Savar'}), 101)
+        self.assert_ids(self.search({'district':'Dhaka','risk_level':'MEDIUM'}), 102)
+        self.assert_ids(self.search({'district':'Dhaka','upazila':'Savar','risk_level':'LOW'}), 101)
+        self.assert_ids(self.search({'district':'Dhaka','upazila':'Savar','risk_level':'HIGH'}))
+        self.assert_ids(self.search({'land_id':'SEARCH-A','owner_name':'Alice','district':'Dhaka',
+                                     'upazila':'Savar','mouza':'North','risk_level':'LOW'}), 101)
+
+    def test_public_partial_and_numeric_ids(self):
+        self.assert_ids(self.search({'land_id':'search-a'}), 101)
+        self.assert_ids(self.search({'land_id':'SEARCH'}), 101, 102, 103)
+        self.assert_ids(self.search({'land_id':'101'}), 101)
+        self.assert_ids(self.search({'land_id':'000101','district':'Dhaka'}), 101)
+        self.assert_ids(self.search({'land_id':'9'*100}))
+        response = self.client.get('/api/lands/101')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['land_id'], 'SEARCH-A')
+
+    def test_no_results(self):
+        result = self.search({'district':'Unknown District'})
+        self.assert_ids(result)
+        self.assertEqual(result['count'], 0)
+
+    def test_sql_values_are_literal_and_parameterized(self):
+        self.assert_ids(self.search({'owner_name':"' OR 1=1 --"}))
+        self.assert_ids(self.search({'owner_name':"O'Neil"}), 104)
+        self.assert_ids(self.search({'owner_name':'%_'}), 104)
+        self.assert_ids(self.search({'land_id':'%_'}), 104)
+
+    def test_malformed_parameters(self):
+        for query in ['risk_level=INVALID', 'risk_level=', 'district=', 'district=%20%20',
+                      'district=Dhaka&district=Sylhet', 'unknown=value', 'district=%00', 'owner_name=%0A']:
+            with self.subTest(query=query):
+                response = self.client.get('/api/lands/search?' + query)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('error', response.get_json())
+        result = self.search({'district':'  Dhaka  ', 'risk_level':' low '})
+        self.assert_ids(result, 101)
+        self.assertEqual(result['filters']['district'], 'Dhaka')
+        self.assertEqual(result['filters']['risk_level'], 'LOW')
+
+    def test_database_failure(self):
+        with patch.object(backend, 'get_db', side_effect=sqlite3.OperationalError('test failure')):
+            with self.assertLogs(backend.app.logger, level='ERROR'):
+                response = self.client.get('/api/lands/search')
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.get_json(), {'error':'Database temporarily unavailable.'})
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
