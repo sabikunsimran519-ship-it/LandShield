@@ -1,18 +1,19 @@
 import sqlite3
 import re
-from pathlib import Path
 
 from flask import Flask, jsonify, request
+from werkzeug.exceptions import HTTPException
+
+from database import get_db_connection
 
 app = Flask(__name__)
+app.url_map.merge_slashes = False
 
-DATABASE = Path(__file__).with_name("landshield.db")
+SCREENING_DISCLAIMER = "Screening only - official/legal verification is still required."
 
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_db_connection(read_only=True)
 
 
 def find_land(land_id):
@@ -20,6 +21,8 @@ def find_land(land_id):
     conn = get_db()
     try:
         if land_id.isdecimal():
+            if int(land_id) > 2**63 - 1:
+                return None
             return conn.execute("SELECT * FROM land WHERE id = ?", (int(land_id),)).fetchone()
         return conn.execute("SELECT * FROM land WHERE land_id = ?", (land_id,)).fetchone()
     finally:
@@ -198,6 +201,7 @@ def check_documents(land):
         "public_land_id": land["land_id"],
         "verification_status": verification_status,
         "screening_only": True,
+        "disclaimer": SCREENING_DISCLAIMER,
         "message": "Screening only - official/legal document verification is still required.",
         "checks": checks,
         "warnings": warnings,
@@ -259,7 +263,7 @@ def analyze_land(land):
         },
         "recommended_actions": actions,
         "recommendation": recommendation,
-        "disclaimer": "Decision-support screening only; this is not legal advice or official government verification.",
+        "disclaimer": SCREENING_DISCLAIMER + " Decision-support screening only; this is not legal advice or official government verification.",
     }
 
 
@@ -343,6 +347,11 @@ def location_for_land(land):
             "accuracy": accuracy,
         },
         "map_note": note,
+        "boundary_geojson": None,
+        "boundary_accuracy": "NOT AVAILABLE",
+        "boundary_note": "No verified parcel boundary is available.",
+        "terrain": {"available": False, "source": "NOT AVAILABLE"},
+        "terrain_note": "No terrain data is available.",
     }
     if is_demo:
         result.update({
@@ -407,6 +416,7 @@ def simulate_land_risk(land, scenario):
         "public_land_id": land["land_id"],
         "current": {"overall_score": current["overall_score"], "risk_level": current["risk_level"]},
         "scenario": scenario,
+        "disclaimer": SCREENING_DISCLAIMER,
         "simulated": {"overall_score": simulated["overall_score"], "risk_level": simulated["risk_level"]},
         "changes": changes,
         "explanation": explanation,
@@ -479,7 +489,8 @@ def get_land_report(land_id):
             "khas_status": land["khas_status"],
         },
         "location": location["location"],
-        "map_note": location["map_note"],
+        **{key: value for key, value in location.items()
+           if key not in {"land_id", "public_land_id", "location"}},
         "risk": risk,
         "document_verification": documents,
         "ai_analysis": analysis,
@@ -492,8 +503,23 @@ def get_land_report(land_id):
             "reason": analysis["recommendation"],
             "priority_actions": analysis["recommended_actions"],
         },
-        "disclaimer": "LandShield provides decision-support screening only. It is not legal advice and does not replace official government or legal verification.",
+        "disclaimer": SCREENING_DISCLAIMER + " LandShield provides decision-support screening only. It is not legal advice and does not replace official government or legal verification.",
     })
+
+
+@app.errorhandler(HTTPException)
+def handle_http_error(error):
+    if request.path.startswith("/api/"):
+        response = error.get_response()
+        response.data = app.json.dumps({"error": error.description})
+        response.content_type = "application/json"
+        return response
+    return error
+
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    return jsonify({"error": "Internal server error."}), 500
 
 
 @app.errorhandler(sqlite3.Error)
@@ -503,4 +529,4 @@ def handle_database_error(error):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

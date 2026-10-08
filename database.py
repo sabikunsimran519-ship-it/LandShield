@@ -1,10 +1,14 @@
 import sqlite3
+from pathlib import Path
 
-DATABASE = "landshield.db"
+DATABASE = Path(__file__).with_name("landshield.db")
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
+def get_db_connection(read_only=False):
+    if read_only:
+        conn = sqlite3.connect(DATABASE.resolve().as_uri() + "?mode=ro", uri=True)
+    else:
+        conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
