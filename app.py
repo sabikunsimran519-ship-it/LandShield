@@ -288,6 +288,65 @@ def get_lands():
     return jsonify([dict(land) for land in lands])
 
 
+@app.route("/api/lands/search")
+def search_lands():
+    """Search stored fields, then filter using the existing risk engine."""
+    text_fields = ("land_id", "district", "upazila", "mouza", "owner_name")
+    filters = dict.fromkeys((*text_fields, "risk_level"))
+    for name in request.args:
+        if name not in filters:
+            return jsonify({"error": f"Unsupported search parameter: {name}."}), 400
+        values = request.args.getlist(name)
+        if len(values) != 1 or not values[0].strip() or any(ord(char) < 32 for char in values[0]):
+            return jsonify({"error": f"Invalid {name}: supply one non-empty text value without control characters."}), 400
+        filters[name] = values[0].strip()
+
+    if filters["risk_level"] is not None:
+        filters["risk_level"] = filters["risk_level"].upper()
+        if filters["risk_level"] not in {"LOW", "MEDIUM", "HIGH"}:
+            return jsonify({"error": "Invalid risk_level; allowed values: LOW, MEDIUM, HIGH."}), 400
+
+    clauses = []
+    parameters = []
+    for field in text_fields:
+        value = filters[field]
+        if value is None:
+            continue
+        # Column names come only from text_fields; all user values are bound.
+        clause = f"instr(CASEFOLD(COALESCE({field}, '')), ?) > 0"
+        parameters.append(value.casefold())
+        if field == "land_id" and value.isascii() and value.isdecimal():
+            # Avoid converting arbitrarily long IDs or overflowing SQLite INTEGER.
+            numeric_id = value.lstrip("0") or "0"
+            if len(numeric_id) <= 19 and int(numeric_id) <= 2**63 - 1:
+                clause = f"({clause} OR id = ?)"
+                parameters.append(int(numeric_id))
+        clauses.append(clause)
+
+    query = "SELECT * FROM land"
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY id"
+    conn = get_db()
+    try:
+        conn.create_function("CASEFOLD", 1, lambda value: value.casefold())
+        candidates = conn.execute(query, parameters).fetchall()
+    finally:
+        conn.close()
+
+    lands = []
+    for land in candidates:
+        risk = calculate_risk(land)
+        if filters["risk_level"] is not None and risk["risk_level"] != filters["risk_level"]:
+            continue
+        lands.append({
+            **{field: land[field] for field in ("id", *text_fields)},
+            "risk_score": risk["overall_score"],
+            "risk_level": risk["risk_level"],
+        })
+    return jsonify({"count": len(lands), "filters": filters, "lands": lands})
+
+
 @app.route("/api/lands/<land_id>")
 def get_land(land_id):
     if not validate_land_id(land_id):
