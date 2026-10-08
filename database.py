@@ -40,6 +40,34 @@ def create_database():
     conn.close()
 
 
+
+
+def create_risk_assessments_table():
+    """Add assessment history without replacing existing tables or records."""
+    conn = get_db_connection()
+    try:
+        with conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS risk_assessments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    land_id INTEGER NOT NULL REFERENCES land(id),
+                    risk_score INTEGER NOT NULL,
+                    risk_level TEXT NOT NULL,
+                    ownership_risk INTEGER,
+                    document_risk INTEGER,
+                    dispute_risk INTEGER,
+                    acquisition_risk INTEGER,
+                    khas_risk INTEGER,
+                    assessment_type TEXT NOT NULL,
+                    note TEXT,
+                    created_at TEXT NOT NULL
+                )
+            """)
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     create_database()
+    create_risk_assessments_table()
     print("LandShield database created successfully!")

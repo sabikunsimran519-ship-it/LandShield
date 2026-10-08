@@ -1,10 +1,11 @@
 import sqlite3
 import re
+from datetime import datetime, timezone
 
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from database import get_db_connection
+from database import get_db_connection, create_risk_assessments_table
 
 app = Flask(__name__)
 app.url_map.merge_slashes = False
@@ -566,6 +567,111 @@ def get_land_report(land_id):
     })
 
 
+ASSESSMENT_TYPES = {"GENERAL", "PRE_PURCHASE", "FOLLOW_UP"}
+MAX_ASSESSMENT_NOTE_LENGTH = 2000
+
+
+def assessment_json(row):
+    result = dict(row)
+    result["assessment_id"] = result.pop("id")
+    result.pop("land_id")
+    return result
+
+
+@app.route("/api/lands/<land_id>/assessments", methods=["POST"])
+def create_land_assessment(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+
+    # No body is valid; a supplied body must be a JSON object.
+    body = {}
+    if request.get_data():
+        if not request.is_json:
+            return jsonify({"error": "Request body must be a JSON object."}), 400
+        body = request.get_json()
+        if not isinstance(body, dict):
+            return jsonify({"error": "Request body must be a JSON object."}), 400
+    if set(body) - {"assessment_type", "note"}:
+        return jsonify({"error": "Only assessment_type and note may be supplied; risk values are calculated by the server."}), 400
+    assessment_type = body.get("assessment_type", "GENERAL")
+    if not isinstance(assessment_type, str) or assessment_type.strip().upper() not in ASSESSMENT_TYPES:
+        return jsonify({"error": "Invalid assessment_type; allowed values: GENERAL, PRE_PURCHASE, FOLLOW_UP."}), 400
+    assessment_type = assessment_type.strip().upper()
+    note = body.get("note")
+    if note is not None and (not isinstance(note, str) or len(note) > MAX_ASSESSMENT_NOTE_LENGTH or "\x00" in note):
+        return jsonify({"error": f"Invalid note; supply text of at most {MAX_ASSESSMENT_NOTE_LENGTH} characters or null."}), 400
+
+    conn = get_db_connection()
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+        with conn:
+            # Take one database snapshot and prevent concurrent writes until saved.
+            conn.execute("BEGIN IMMEDIATE")
+            current_land = conn.execute("SELECT * FROM land WHERE id = ?", (land["id"],)).fetchone()
+            if current_land is None:
+                return jsonify({"error": "Land not found."}), 404
+            risk = calculate_risk(current_land)
+            created_at = datetime.now(timezone.utc).isoformat(timespec="microseconds")
+            cursor = conn.execute("""
+                INSERT INTO risk_assessments (
+                    land_id, risk_score, risk_level, ownership_risk, document_risk,
+                    dispute_risk, acquisition_risk, khas_risk, assessment_type, note, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (current_land["id"], risk["overall_score"], risk["risk_level"],
+                  risk["ownership_risk"], risk["document_risk"], risk["dispute_risk"],
+                  risk["acquisition_risk"], risk["khas_risk"], assessment_type, note, created_at))
+            row = conn.execute("SELECT * FROM risk_assessments WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    finally:
+        conn.close()
+    return jsonify({"land_id": land["land_id"], **assessment_json(row),
+                    "disclaimer": SCREENING_DISCLAIMER}), 201
+
+
+@app.route("/api/lands/<land_id>/assessments", methods=["GET"])
+def get_land_assessments(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+    conn = get_db()
+    try:
+        rows = conn.execute("""
+            SELECT * FROM risk_assessments WHERE land_id = ?
+            ORDER BY created_at DESC, id DESC
+        """, (land["id"],)).fetchall()
+    finally:
+        conn.close()
+    return jsonify({"land_id": land["land_id"], "count": len(rows),
+                    "assessments": [assessment_json(row) for row in rows],
+                    "disclaimer": SCREENING_DISCLAIMER})
+
+
+@app.route("/api/lands/<land_id>/assessments/<assessment_id>")
+def get_land_assessment(land_id, assessment_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    if (not re.fullmatch(r"[0-9]{1,19}", assessment_id)
+            or not 1 <= int(assessment_id) <= 2**63 - 1):
+        return jsonify({"error": "Invalid assessment ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT * FROM risk_assessments WHERE id = ? AND land_id = ?",
+                           (int(assessment_id), land["id"])).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return jsonify({"error": "Assessment not found."}), 404
+    return jsonify({"land_id": land["land_id"], **assessment_json(row),
+                    "disclaimer": SCREENING_DISCLAIMER})
+
+
 @app.errorhandler(HTTPException)
 def handle_http_error(error):
     if request.path.startswith("/api/"):
@@ -588,4 +694,5 @@ def handle_database_error(error):
 
 
 if __name__ == "__main__":
+    create_risk_assessments_table()
     app.run()
