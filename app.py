@@ -15,6 +15,47 @@ def get_db():
     return conn
 
 
+def ensure_mutation_history_schema():
+    """Create the synthetic demo history store without changing land risk data."""
+    conn = get_db()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mutation_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                land_id TEXT NOT NULL,
+                event_date TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                description TEXT NOT NULL,
+                is_synthetic INTEGER NOT NULL DEFAULT 1 CHECK (is_synthetic = 1),
+                FOREIGN KEY (land_id) REFERENCES land(land_id) ON DELETE CASCADE
+            )
+        """)
+        exists = conn.execute(
+            "SELECT 1 FROM land WHERE land_id = ?", ("DEMO-001",)
+        ).fetchone()
+        has_history = conn.execute(
+            "SELECT 1 FROM mutation_history WHERE land_id = ? LIMIT 1", ("DEMO-001",)
+        ).fetchone()
+        if exists and not has_history:
+            conn.executemany("""
+                INSERT INTO mutation_history
+                    (land_id, event_date, event_type, status, description)
+                VALUES (?, ?, ?, ?, ?)
+            """, [
+                ("DEMO-001", "2021-01-01", "DEMO_RECORD_CREATED", "RECORDED",
+                 "Synthetic demo record created. This is not a real deed or ownership transfer."),
+                ("DEMO-001", "2024-01-01", "MUTATION_REVIEW", "PENDING",
+                 "Synthetic demo mutation review marked pending, matching the current demo status."),
+            ])
+        conn.commit()
+    finally:
+        conn.close()
+
+
+ensure_mutation_history_schema()
+
+
 def find_land(land_id):
     """Look up either the numeric primary key or the public land_id."""
     conn = get_db()
@@ -314,6 +355,54 @@ def get_land_documents(land_id):
     return jsonify(check_documents(land))
 
 
+@app.route("/api/lands/<land_id>/mutation-history")
+def get_land_mutation_history(land_id):
+    if not validate_land_id(land_id):
+        return jsonify({"error": "Invalid land ID."}), 400
+    land = find_land(land_id)
+    if land is None:
+        return jsonify({"error": "Land not found."}), 404
+    return jsonify(mutation_history_for_land(land))
+
+
+def mutation_history_for_land(land):
+    conn = get_db()
+    try:
+        events = conn.execute("""
+            SELECT event_date, event_type, status, description, is_synthetic
+            FROM mutation_history
+            WHERE land_id = ?
+            ORDER BY event_date ASC, id ASC
+        """, (land["land_id"],)).fetchall()
+    finally:
+        conn.close()
+    history = []
+    for event in events:
+        item = dict(event)
+        item["year"] = int(item["event_date"][:4])
+        item["is_synthetic"] = bool(item["is_synthetic"])
+        history.append(item)
+    current_status = land["mutation_status"] or "unknown"
+    last_history_status = history[-1]["status"] if history else None
+    status_consistent = (
+        str(current_status).strip().casefold() == str(last_history_status).strip().casefold()
+        if last_history_status is not None else None
+    )
+    warning = "Demo timeline only. Confirm mutation and ownership history with official records before purchase."
+    if status_consistent is False:
+        warning = "The current mutation status differs from the latest timeline entry. Treat this as an inconsistency and verify the record with official sources before purchase."
+    return {
+        "land_id": land["land_id"],
+        "current_status": current_status,
+        "status_consistent": status_consistent,
+        "history": history,
+        "is_synthetic": str(land["land_id"]).startswith("DEMO-"),
+        "source": "SYNTHETIC DEMO DATA" if str(land["land_id"]).startswith("DEMO-") else "No source metadata",
+        "warning": warning,
+        "message": "No mutation history records are available for this land." if not history else None,
+    }
+
+
 @app.route("/api/lands/<land_id>/ai-analysis")
 def get_land_ai_analysis(land_id):
     if not validate_land_id(land_id):
@@ -384,13 +473,28 @@ def simulate_land_risk(land, scenario):
     current = calculate_risk(land)
     simulated_land = dict(land)
     changes = []
+    applied_changes = 0
     for name, column in (("dispute", "dispute_status"), ("mutation", "mutation_status")):
         if name in scenario:
             new_value = scenario[name]
             old_value = str(land[column] or "unknown")
+            old_normalized = old_value.strip().casefold()
+            if name == "dispute" and new_value == "resolved":
+                if old_normalized in {"no", "none", "clear"}:
+                    changes.append("No active dispute is recorded; there is no dispute to resolve.")
+                    continue
+                if old_normalized in {"resolved", "previous", "closed"}:
+                    changes.append("The dispute is already recorded as resolved or closed.")
+                    continue
+            if name == "mutation" and new_value == "complete" and old_normalized in {"yes", "done", "complete", "completed", "verified"}:
+                changes.append("Mutation is already recorded as complete.")
+                continue
+            if old_normalized == str(new_value).strip().casefold():
+                continue
             if old_value != new_value:
                 simulated_land[column] = new_value
                 changes.append(f"{name.capitalize()} status: {old_value} to {new_value}.")
+                applied_changes += 1
 
     simulated = calculate_risk(simulated_land)
     difference = simulated["overall_score"] - current["overall_score"]
@@ -399,15 +503,24 @@ def simulate_land_risk(land, scenario):
     elif difference > 0:
         explanation = f"Hypothetical risk increases by {difference} points."
     else:
-        explanation = "Hypothetical risk score is unchanged."
+        explanation = ("No applicable hypothetical status change was made; the risk score is unchanged."
+                       if not applied_changes and changes else "Hypothetical risk score is unchanged.")
     explanation += " This simulation does not change stored land data or confirm that a condition has changed."
 
     return {
         "land_id": land["id"],
         "public_land_id": land["land_id"],
-        "current": {"overall_score": current["overall_score"], "risk_level": current["risk_level"]},
+        "current": {
+            "overall_score": current["overall_score"],
+            "risk_level": current["risk_level"],
+            "screening_result": current["screening_result"],
+        },
         "scenario": scenario,
-        "simulated": {"overall_score": simulated["overall_score"], "risk_level": simulated["risk_level"]},
+        "simulated": {
+            "overall_score": simulated["overall_score"],
+            "risk_level": simulated["risk_level"],
+            "screening_result": simulated["screening_result"],
+        },
         "changes": changes,
         "explanation": explanation,
     }
@@ -445,6 +558,7 @@ def get_land_report(land_id):
     documents = check_documents(land)
     analysis = analyze_land(land)
     location = location_for_land(land)
+    mutation_history = mutation_history_for_land(land)
     examples = []
     for description, scenario in (
         ("Current condition", {}),
@@ -480,6 +594,8 @@ def get_land_report(land_id):
         },
         "location": location["location"],
         "map_note": location["map_note"],
+        "mutation_history": mutation_history,
+        "demo_notice": "Demo Screening — Synthetic Data. This prototype uses synthetic/demo data and does not provide official government verification or legal advice. Independent verification is required before any land transaction.",
         "risk": risk,
         "document_verification": documents,
         "ai_analysis": analysis,
