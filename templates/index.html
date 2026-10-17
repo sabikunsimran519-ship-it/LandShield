@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="bn">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -16,22 +16,39 @@
     <a class="brand" href="#overview"><span class="brand-mark">L</span><span>land<span class="brand-light">shield</span><small>LAND INTELLIGENCE</small></span></a>
     <div class="workspace"><span class="workspace-dot"></span><span>Workspace</span><b>Demo portfolio</b><span class="chevron">⌄</span></div>
     <p class="nav-label">WORKSPACE</p>
-    <nav>
-      <a class="nav-item active" href="#overview"><span>◫</span> Overview</a>
-      <a class="nav-item" href="#map"><span>⌖</span> Land map</a>
-      <a class="nav-item" href="#risk"><span>◉</span> Risk analysis</a>
-      <a class="nav-item" href="#mutation-history"><span>↻</span> Mutation history</a>
-      <a class="nav-item" href="#documents"><span>▤</span> Documents</a>
-      <a class="nav-item" href="#digital-twin"><span>◇</span> Digital twin</a>
-      <a class="nav-item" href="#simulator"><span>⟳</span> What-if simulator</a>
-      <a class="nav-item" href="#final-report"><span>▧</span> Final report</a>
+    <nav aria-label="Workspace navigation">
+      <a class="nav-item active" href="#overview" data-view-target="dashboard" aria-current="page"><span aria-hidden="true">◫</span> Dashboard</a>
+      <a class="nav-item" href="#check-your-land" data-view-target="check-land"><span aria-hidden="true">⌕</span> Provide your land information</a>
+      <a class="nav-item" href="#land-details" data-view-target="verification"><span aria-hidden="true">⌕</span> Land Verification</a>
+      <div class="nav-group">
+        <a class="nav-item" href="#map" data-view-target="intelligence"><span aria-hidden="true">⌖</span> Land Intelligence</a>
+        <div class="nav-submenu">
+          <a class="nav-subitem" href="#map"><span aria-hidden="true">◉</span> Map</a>
+          <a class="nav-subitem" href="#risk"><span aria-hidden="true">!</span> Risk Analysis</a>
+        </div>
+      </div>
+      <div class="nav-group">
+        <a class="nav-item" href="#final-report" data-view-target="reports"><span aria-hidden="true">▧</span> Mutation &amp; Reports</a>
+        <div class="nav-submenu">
+          <a class="nav-subitem" href="#mutation-history"><span aria-hidden="true">↻</span> Mutation History</a>
+          <a class="nav-subitem" href="#final-report"><span aria-hidden="true">▤</span> Report</a>
+        </div>
+      </div>
     </nav>
     <div class="sidebar-bottom"><div class="help-icon">?</div><div><b>Need a hand?</b><small>Visit our help center</small></div><span class="arrow">↗</span></div>
     <div class="profile"><div class="avatar">AS</div><div><b>Account</b><small>Land analyst</small></div><span class="chevron">···</span></div>
   </aside>
 
   <main class="main-content" id="overview">
-    <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <b>Overview</b></div><details class="mobile-menu"><summary aria-label="Open dashboard navigation">☰</summary><nav><a href="#overview">Overview</a><a href="#map">Land map</a><a href="#risk">Risk analysis</a><a href="#mutation-history">Mutation history</a><a href="#documents">Documents</a><a href="#digital-twin">Digital twin</a><a href="#simulator">What-if simulator</a><a href="#final-report">Final report</a></nav></details><div class="top-actions"><div class="language-switch" role="group" aria-label="Language"><button id="languageEnglish" type="button" aria-pressed="true">English</button><button id="languageBangla" type="button" aria-pressed="false">&#2476;&#2494;&#2434;&#2482;&#2494;</button></div><button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false"><svg class="theme-icon theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg><span class="theme-toggle-label">Dark mode</span></button><span class="demo-pill">Demo Data</span><button class="icon-button" aria-label="Notifications">♧<i class="notification-dot"></i></button><div class="top-avatar">AS</div></div></header>
+    <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <b>Overview</b></div><details class="mobile-menu"><summary aria-label="Open dashboard navigation">&#9776;</summary><nav aria-label="Main navigation">
+          <a href="#overview">Dashboard</a>
+          <a href="#check-your-land">Provide your land information</a>
+          <a href="#land-details">Land Verification</a>
+          <div class="mobile-nav-group"><a class="mobile-nav-parent" href="#map" data-view-target="intelligence">Land Intelligence</a><a class="nav-subitem" href="#map"><span aria-hidden="true">&#9673;</span> Map</a><a class="nav-subitem" href="#risk"><span aria-hidden="true">!</span> Risk Analysis</a></div>
+          <div class="mobile-nav-group"><a class="mobile-nav-parent" href="#final-report" data-view-target="reports">Mutation &amp; Reports</a><a class="nav-subitem" href="#mutation-history"><span aria-hidden="true">&#8635;</span> Mutation History</a><a class="nav-subitem" href="#final-report"><span aria-hidden="true">&#9635;</span> Report</a></div>
+          <a href="#documents">Documents</a><a href="#digital-twin">Digital twin</a><a href="#simulator">What-if simulator</a>
+        </nav></details><div class="top-actions"><div class="language-switch" role="group" aria-label="Language"><button id="languageEnglish" type="button" aria-pressed="false">English</button><button id="languageBangla" type="button" aria-pressed="true">&#2476;&#2494;&#2434;&#2482;&#2494;</button></div><button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false"><svg class="theme-icon theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></svg><span class="theme-toggle-label">Dark mode</span></button><span class="demo-pill">Demo Data</span><button class="icon-button" aria-label="Notifications">♧<i class="notification-dot"></i></button><div class="top-avatar">AS</div></div></header>
+    <div class="main-view" data-view-panel="dashboard">
     <section class="page-heading"><div><p class="eyebrow"><span id="todayDate">LAND PORTFOLIO</span><span>·</span> DHAKA, BANGLADESH</p><h1>Check before you <em>buy land.</em></h1><p class="subheading">Understand land information, possible risks, and what to do next.</p></div><button class="button button-dark" id="refreshButton"><span>↻</span> Refresh data</button></section>
 
 
@@ -44,33 +61,167 @@
       <p class="land-reference-message" id="landReferenceMessage" role="status" aria-live="polite">Loading available land references…</p>
     </section>
     <section class="service-section" aria-labelledby="serviceSectionTitle"><div class="service-section-heading"><div><p class="section-kicker">LANDSHIELD SERVICES</p><h2 id="serviceSectionTitle">Services</h2></div></div><div class="services-grid">
-      <a class="service-card" href="#landReferenceForm"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m16 16 4.5 4.5M8 9h5.5M8 12h4"/></svg></span><span class="service-card-copy"><b>Land Information</b><small>Search a land reference.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
+      <a class="service-card" href="#land-details" data-view-target="verification"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m16 16 4.5 4.5M8 9h5.5M8 12h4"/></svg></span><span class="service-card-copy"><b>Land Information</b><small>Search a land reference.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
       <a class="service-card" href="#risk"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v5.5c0 4.5-3.2 7.7-8 9.5-4.8-1.8-8-5-8-9.5V6l8-3Z"/><path d="M12 7v5m0 3h.01"/></svg></span><span class="service-card-copy"><b>Risk Check</b><small>Review the screening result.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
       <a class="service-card" href="#mutation-history"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v15H4zM8 3.5v4m8-4v4M7 11h10M7 15h6"/><path d="m15 18 2 2 4-4"/></svg></span><span class="service-card-copy"><b>Ownership and mutation</b><small>Review the available ownership timeline.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
-      <a class="service-card" href="#documents"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6zM14 3.5v5h4M9 13h6m-6 3h4"/><circle cx="18.5" cy="18.5" r="3.5"/><path d="m17 18.5 1 1 2-2"/></svg></span><span class="service-card-copy"><b>Documents</b><small>Review document screening.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
+      <a class="service-card" href="#final-report" data-view-target="reports"><span class="service-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3.5h8l4 4v13H6zM14 3.5v5h4M9 13h6m-6 3h4"/><circle cx="18.5" cy="18.5" r="3.5"/><path d="m17 18.5 1 1 2-2"/></svg></span><span class="service-card-copy"><b>Documents</b><small>Review document screening.</small></span><span class="service-arrow" aria-hidden="true">→</span></a>
     </div></section>
-    <section class="citizen-summary panel" aria-labelledby="citizenSummaryTitle"><div class="citizen-summary-heading"><p class="section-kicker">RISK SUMMARY</p><h2 id="citizenSummaryTitle">Current land screening</h2></div><div class="citizen-summary-status"><div><span class="citizen-label">SCREENING OUTCOME</span><strong id="citizenOutcome">Waiting for land data</strong></div><div class="citizen-score"><span class="citizen-label">RISK SCORE</span><strong><b id="citizenRiskScore">—/100</b><i id="citizenRiskLevel">—</i></strong></div></div><p class="citizen-summary-explanation" id="citizenSummaryExplanation">The score and screening result will appear when the land data loads.</p><div class="citizen-warning"><b id="citizenWarningTitle">Main reason</b><p id="citizenWarningText">Checking the recorded risk indicators...</p></div><div class="citizen-next-action"><b>Next step</b><p id="citizenNextAction">Verify ownership and official records before buying.</p></div><a class="text-button" href="#risk">View risk details <b>→</b></a></section>
-    <details class="advanced-details" id="advancedDetails"><summary id="detailsSummary">⌄ <span>View details / বিস্তারিত দেখুন</span></summary>
+    <section class="citizen-summary panel" aria-labelledby="citizenSummaryTitle"><div class="citizen-summary-heading"><p class="section-kicker">RISK SUMMARY</p><h2 id="citizenSummaryTitle">Current land screening</h2></div><div class="citizen-summary-status"><div><span class="citizen-label">SCREENING OUTCOME</span><strong id="citizenOutcome">Waiting for land data</strong></div><div class="citizen-score" data-risk-level="UNAVAILABLE"><span class="citizen-label">RISK SCORE</span><div class="citizen-score-display"><div class="risk-score-ring" id="citizenRiskRing" aria-hidden="true"><svg viewBox="0 0 100 100" focusable="false"><circle class="risk-score-track" cx="50" cy="50" r="42" pathLength="100"></circle><circle class="risk-score-progress" cx="50" cy="50" r="42" pathLength="100"></circle></svg><div class="risk-score-value"><b id="citizenRiskScore">—</b><span>/100</span></div></div><i id="citizenRiskLevel" data-risk-level="UNAVAILABLE">—</i></div></div></div><p class="citizen-summary-explanation" id="citizenSummaryExplanation">The score and screening result will appear when the land data loads.</p><div class="citizen-warning"><b id="citizenWarningTitle">Main reason</b><p id="citizenWarningText">Checking the recorded risk indicators...</p></div><div class="citizen-next-action"><b>Next step</b><p id="citizenNextAction">Verify ownership and official records before buying.</p></div><a class="text-button citizen-details-link" href="#risk">View details <b>→</b></a></section>
+    </div>
+    <div class="main-view" data-view-panel="check-land" hidden>
+      <section class="panel check-land-panel" id="check-your-land" aria-labelledby="checkLandTitle">
+        <div class="check-land-hero"><span class="check-land-hero-icon" aria-hidden="true">⌖</span><div><p class="section-kicker">SEPARATE LAND DETAILS</p><h2 id="checkLandTitle">Check Your Land</h2><p class="panel-subtitle">Enter your land details for a preliminary prototype screening.</p></div></div>
+        <aside class="check-land-note" role="note"><span class="check-land-note-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5m0-8h.01"></path></svg></span><div><b>Prototype screening only</b><p>Details entered here are not sent to official land records and are not officially verified. This prototype currently screens only DEMO-001 and DEMO-002 through reference ID search.</p></div></aside>
+        <form id="checkLandForm" class="check-land-form">
+          <p class="check-land-required-note">* All fields are required</p>
+          <fieldset class="check-land-group">
+            <legend><span class="check-land-group-icon" aria-hidden="true">⌖</span>Location</legend>
+            <div class="check-land-fields">
+              <div class="check-land-field"><label for="checkLandDistrict">District <span aria-hidden="true">*</span></label><input id="checkLandDistrict" name="district" autocomplete="address-level1" placeholder="Enter district name" required></div>
+              <div class="check-land-field"><label for="checkLandUpazila">Upazila <span aria-hidden="true">*</span></label><input id="checkLandUpazila" name="upazila" placeholder="Enter upazila name" required></div>
+              <div class="check-land-field"><label for="checkLandMouza">Mouza <span aria-hidden="true">*</span></label><input id="checkLandMouza" name="mouza" placeholder="Enter mouza name" required></div>
+            </div>
+          </fieldset>
+          <fieldset class="check-land-group check-land-record-group">
+            <legend><span class="check-land-group-icon" aria-hidden="true">▤</span>Land Records</legend>
+            <div class="check-land-fields">
+              <div class="check-land-field"><label for="checkLandDag">Dag Number <span aria-hidden="true">*</span></label><input id="checkLandDag" name="dag_number" placeholder="Enter dag number" required></div>
+              <div class="check-land-field"><label for="checkLandKhatian">Khatian Number <span aria-hidden="true">*</span></label><input id="checkLandKhatian" name="khatian_number" placeholder="Enter khatian number" required></div>
+            </div>
+          </fieldset>
+          <fieldset class="check-land-group">
+            <legend><span class="check-land-group-icon" aria-hidden="true">⌂</span>Land Details</legend>
+            <div class="check-land-fields">
+              <div class="check-land-field"><label for="checkLandArea">Land Area <span aria-hidden="true">*</span></label><input id="checkLandArea" name="land_area" type="number" min="0.01" step="any" inputmode="decimal" placeholder="e.g., 12.5" required></div>
+              <div class="check-land-field"><label for="checkLandAreaUnit">Area Unit <span aria-hidden="true">*</span></label><select id="checkLandAreaUnit" name="area_unit" required><option value="" selected disabled>Select an area unit</option><option value="decimal">Decimal</option><option value="katha">Katha</option><option value="bigha">Bigha</option><option value="acre">Acre</option><option value="hectare">Hectare</option><option value="square_feet">Square feet</option></select></div>
+              <div class="check-land-field"><label for="checkLandType">Land Type <span aria-hidden="true">*</span></label><select id="checkLandType" name="land_type" required><option value="" selected disabled>Select a land type</option><option value="agricultural">Agricultural</option><option value="residential">Residential</option><option value="commercial">Commercial</option><option value="industrial">Industrial</option><option value="other">Other</option></select></div>
+            </div>
+          </fieldset>
+          <div class="check-land-actions"><button class="button button-green" type="submit">Submit land details <span aria-hidden="true">→</span></button><a class="subtle-button check-land-back" href="#overview" data-view-target="dashboard">Back to Dashboard</a></div>
+        </form>
+        <p class="check-land-result" id="checkLandMessage" role="status" aria-live="polite" hidden></p>
+      </section>
+    </div>
+    <details class="advanced-details" id="advancedDetails">
+    <summary id="detailsSummary">⌄ <span>View details / বিস্তারিত দেখুন</span></summary>
+    <div class="main-view" data-view-panel="verification" hidden>
     <section class="land-select-card" id="land-details"><div class="land-icon">⌂</div><div class="land-select-copy"><label for="landSelect">CURRENT LAND PARCEL</label><div class="select-wrap"><select id="landSelect" aria-label="Choose land parcel"><option value="DEMO-001">Loading lands…</option></select><span>⌄</span></div></div><div class="land-location"><span class="pin">⌖</span><div><b id="landLocation">Fetching location…</b><small id="landMeta">Loading synthetic demo record</small></div></div><div class="land-id"><span>PARCEL ID</span><b id="parcelId">—</b></div></section>
 
     <div class="term-guide" aria-label="Simple land terms"><b>Simple land terms</b><span><abbr tabindex="0" title="A record showing land ownership and holdings.">Khatian ⓘ</abbr></span><span><abbr tabindex="0" title="A plot or parcel number within a mouza.">Dag ⓘ</abbr></span><span><abbr tabindex="0" title="The process of updating land ownership details after a transfer.">Mutation ⓘ</abbr></span><span><abbr tabindex="0" title="Land taken by government for a public purpose under applicable law.">Acquisition ⓘ</abbr></span><span><abbr tabindex="0" title="A disagreement about land ownership, boundaries, or rights.">Dispute ⓘ</abbr></span><span><abbr tabindex="0" title="A screening indicator based on recorded information. It cannot guarantee that land is safe to buy.">Risk score ⓘ</abbr></span></div>
 
-    <div class="section-grid">
-      <section class="panel map-panel" id="map"><div class="panel-heading"><div><p class="section-kicker">DEMO GEOSPATIAL VIEW</p><h2>Demo map / approximate location <span class="feature-tag soon">DEMO</span></h2></div><button class="subtle-button" id="mapExpand">⛶ Expand map</button></div>
-        <div class="map-shell" id="mapShell"><div id="realMap" class="real-map" aria-label="Map showing approximate demo coordinates"></div><div class="map-fallback" id="mapFallback"><div class="map-grid"></div><svg class="map-svg" viewBox="0 0 760 330" role="img" aria-label="Illustrative land map preview"><path class="river" d="M-20 82 C90 40 110 175 226 144 S365 44 465 83 630 185 790 111"/><path class="road road-major" d="M-10 267 C115 221 168 213 272 159 S461 115 555 70 675 18 775 35"/><path class="road" d="M70 -10 C94 69 151 88 190 155 S229 251 260 340"/><path class="road" d="M497 -10 C458 75 497 127 536 176 S624 267 622 340"/><path class="field field-a" d="M256 83l90-34 54 44-25 62-91 1z"/><path class="field field-b" d="M387 49l82 19 17 71-93 21-18-67z"/><path class="field field-c" d="M294 166l81-2 27 84-71 38-54-52z"/><path class="parcel" d="M393 155l77-17 37 52-26 70-74 1-39-48z"/><circle class="map-point" cx="440" cy="202" r="8"/><circle class="map-point-pulse" cx="440" cy="202" r="16"/><text class="map-label" x="410" y="287">ILLUSTRATIVE PARCEL</text></svg></div><div class="map-toolbar"><button aria-label="Zoom in" id="zoomIn">+</button><button aria-label="Zoom out" id="zoomOut">−</button><span></span><button aria-label="Center on parcel" id="locateMap">⌖</button></div><div class="map-attribution" id="mapAccuracy"><i></i> Loading approximate demo location…</div><div class="map-loading" id="mapLoading">Waiting for location API…</div></div><div class="map-footer"><span><i class="legend-parcel"></i> Illustrative demo boundary only · not cadastral</span><span>DEMO MAP / APPROXIMATE LOCATION</span><button id="mapDetails">View parcel details <b>→</b></button></div>
-      </section>
-      <section class="panel twin-panel" id="digital-twin"><div class="panel-heading"><div><p class="section-kicker">PROPERTY MODEL</p><h2>3D land digital twin <span class="feature-tag soon" id="terrainAccuracy">DEMO / APPROXIMATE</span></h2></div><span class="twin-controls">Drag to rotate · Scroll to zoom</span></div><div class="twin-scene" id="twinScene" tabindex="0" aria-label="Interactive conceptual land model"><div class="scene-label"><i></i> DEMO TERRAIN VIEW</div><div class="twin-orbit"></div><div class="twin-land"><div class="twin-side"></div><div class="twin-top"><span class="twin-lot lot-1"></span><span class="twin-lot lot-2"></span><span class="twin-lot lot-3"></span><span class="twin-tree tree-1">♣</span><span class="twin-tree tree-2">♣</span><span class="twin-home">⌂</span></div></div><div class="twin-scale"><span>NW</span><i></i><span>SE</span></div><div class="elevation">ELEVATION RANGE <b id="elevationValue">—</b></div><div class="twin-message" id="terrainType">Flat demo terrain</div></div><div class="twin-stats"><div><span>LAND AREA</span><b id="landArea">—</b></div><div><span>LAND TYPE</span><b id="landType">—</b></div><div><span>BOUNDARY</span><b id="boundaryStatus">—</b></div></div><p class="twin-note" id="terrainNote">Demo visualization only; not surveyed elevation data.</p></section>
+    <div class="section-grid lower-grid"><section class="panel docs-panel" id="documents"><div class="panel-heading"><div><p class="section-kicker">DOCUMENT SCREENING</p><h2>Recorded field checks</h2></div><span class="verified-chip" id="verifiedChip">◉ SCREENING</span></div><div class="docs-list" id="documentsList"><div class="loading-row">Checking recorded land fields…</div></div><button class="text-button" id="allDocuments">View screening checks <b>→</b></button></section></div>
     </div>
 
-    <section class="panel risk-panel" id="risk"><div class="panel-heading risk-heading"><div><p class="section-kicker">RISK ENGINE</p><h2>Risk breakdown</h2><p class="panel-subtitle">Five signals that shape your land’s risk score.</p></div><div class="overall-score"><span>OVERALL SCORE</span><b id="riskScoreSmall">—<small>/100</small></b></div></div><div class="risk-categories" id="riskCategories"><div class="loading-row">Loading risk categories from backend…</div></div><div class="dispute-alert" id="disputeAlert"><span class="alert-symbol">!</span><div><b>Dispute status is being checked</b><p>Active disputes may change the final screening decision.</p></div><span class="alert-state">CHECKING</span></div></section>
+    <div class="main-view" data-view-panel="intelligence" hidden>
+    <div class="section-grid">
+      <section class="panel map-panel" id="map"><div class="panel-heading"><div><p class="section-kicker">DEMO GEOSPATIAL VIEW</p><h2>Demo map / approximate location <span class="feature-tag soon">DEMO</span></h2></div><button class="subtle-button" id="mapExpand">⛶ Expand map</button></div>
+        <div class="map-shell" id="mapShell"><div id="realMap" class="real-map" aria-label="Map showing approximate demo coordinates"></div><div class="map-fallback" id="mapFallback" role="status" aria-live="polite">The interactive map cannot be shown without coordinates or map access.</div><div class="map-toolbar"><button aria-label="Zoom in" id="zoomIn">+</button><button aria-label="Zoom out" id="zoomOut">−</button><span></span><button aria-label="Center on parcel" id="locateMap">⌖</button></div><div class="map-attribution" id="mapAccuracy"><i></i> Loading approximate demo location…</div><div class="map-loading" id="mapLoading">Waiting for location API…</div></div><div class="map-footer"><span><i class="legend-parcel"></i> Illustrative demo boundary only · not cadastral</span><span>DEMO MAP / APPROXIMATE LOCATION</span><button id="mapDetails">View parcel details <b>→</b></button></div>
+      </section>
+      <section class="panel twin-panel" id="digital-twin">
+        <div class="panel-heading twin-heading"><div><p class="section-kicker">PROPERTY MODEL</p><h2>3D land digital twin <span class="feature-tag soon" id="terrainAccuracy">DEMO / APPROXIMATE</span></h2><p class="panel-subtitle">An illustrative layout to help picture the plot and nearby access.</p></div><span class="twin-controls">Drag to rotate · Scroll to zoom</span></div>
+        <div class="twin-scene" id="twinScene" tabindex="0" aria-label="Interactive conceptual land model">
+          <div class="scene-label"><i></i> ILLUSTRATIVE NEIGHBORHOOD · NOT A SURVEY</div>
+          <div class="twin-toolbar" role="group" aria-label="3D view controls">
+            <button type="button" data-twin-action="rotate-left" aria-label="Rotate left">↶</button><button type="button" data-twin-action="zoom-out" aria-label="Zoom out">−</button><button type="button" data-twin-action="reset" aria-label="Reset view">Reset</button><button type="button" data-twin-action="zoom-in" aria-label="Zoom in">+</button><button type="button" data-twin-action="rotate-right" aria-label="Rotate right">↷</button>
+          </div>
+          <div class="twin-model">
+            <svg class="twin-illustration" viewBox="0 0 1000 560" role="img" aria-label="Illustrative 3D neighborhood around the selected demo plot">
+              <defs>
+                <linearGradient id="twin-ground" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3f3e7"/><stop offset="1" stop-color="#dce9d7"/></linearGradient>
+                <linearGradient id="twin-roof" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#e8d3b7"/><stop offset="1" stop-color="#c29b72"/></linearGradient>
+                <filter id="twin-shadow" x="-30%" y="-30%" width="170%" height="180%"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#243b2c" flood-opacity=".2"/></filter>
+                <marker id="twin-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 6 3 0 6z" fill="#246e45"/></marker>
+              </defs>
+              <g class="twin-ground">
+                <path d="M45 300 490 58 955 300 512 532Z" fill="url(#twin-ground)" stroke="#c8d8c4" stroke-width="2"/>
+                <path d="m90 304 422-230m-365 290 422-230m-363 291 422-230m-180-110 384 200m-476-150 384 200m-476-151 384 200" fill="none" stroke="#ffffff" stroke-width="2" opacity=".52"/>
+              </g>
+              <g data-twin-layer="green" class="twin-green-layer">
+                <path d="m130 198 110-60 115 59-112 61z" fill="#d5e5c7"/><path d="m695 147 114 60-112 62-113-61z" fill="#cfe0c1"/><path d="m250 391 99-54 103 54-100 56z" fill="#d3e2c8"/>
+                <path d="m215 280 56-30 53 28-57 31z" fill="#eadfc9"/><path d="m647 336 57-31 48 26-58 32z" fill="#eadfc9"/>
+                <g class="twin-tree" transform="translate(205 186)"><ellipse cx="0" cy="16" rx="25" ry="10" fill="#476b4c" opacity=".18"/><path d="M-5 13V-5h10v18" fill="#8c6948"/><circle cy="-12" r="22" fill="#79a66c"/><circle cx="-13" cy="-3" r="13" fill="#91b87c"/><circle cx="12" cy="-2" r="14" fill="#5f915d"/></g>
+                <g class="twin-tree" transform="translate(755 177)"><ellipse cx="0" cy="16" rx="25" ry="10" fill="#476b4c" opacity=".18"/><path d="M-5 13V-5h10v18" fill="#8c6948"/><circle cy="-12" r="22" fill="#79a66c"/><circle cx="-13" cy="-3" r="13" fill="#91b87c"/><circle cx="12" cy="-2" r="14" fill="#5f915d"/></g>
+                <g class="twin-tree" transform="translate(333 400)"><ellipse cx="0" cy="13" rx="20" ry="8" fill="#476b4c" opacity=".18"/><path d="M-4 10V-4h8v14" fill="#8c6948"/><circle cy="-10" r="17" fill="#79a66c"/><circle cx="-10" cy="-2" r="10" fill="#91b87c"/><circle cx="10" cy="-2" r="11" fill="#5f915d"/></g>
+              </g>
+              <g data-twin-layer="buildings" class="twin-building-layer">
+                <g filter="url(#twin-shadow)"><path d="m182 252 90-50 70 37v49l-89 50-71-39z" fill="#d3c1a8"/><path d="m182 252 90 48v38l-90-49z" fill="#b89f82"/><path d="m272 300 70-61v49l-70 50z" fill="#a9896c"/><path d="m182 252 90-52 70 39-90 52z" fill="#b87b5b"/><path d="m199 253 73-42 51 29-72 43z" fill="url(#twin-roof)"/><path d="m215 277 17 9v20l-17-9zm64 34 15-9v21l-15 9z" fill="#79999a" stroke="#f6f1e6" stroke-width="3"/></g>
+                <g filter="url(#twin-shadow)"><path d="m704 269 79-44 66 35v42l-79 45-66-37z" fill="#d7c9b4"/><path d="m704 269 79 42v36l-79-37z" fill="#bca88c"/><path d="m783 311 66-51v42l-66 45z" fill="#a88f72"/><path d="m704 269 79-44 66 35-66 48z" fill="#bf8a69"/><path d="m719 268 64-36 48 26-63 38z" fill="#e1c49e"/><path d="m731 293 16 9v18l-16-9zm55 29 13-8v20l-13 8z" fill="#79999a" stroke="#f6f1e6" stroke-width="3"/></g>
+                <g filter="url(#twin-shadow)"><path d="m505 103 66-37 58 31v37l-66 38-58-32z" fill="#ddd0bb"/><path d="m505 103 66 35v34l-66-35z" fill="#c2ad90"/><path d="m571 138 58-41v37l-58 38z" fill="#ac9275"/><path d="m505 103 66-37 58 31-58 41z" fill="#b77d60"/><path d="m518 103 53-30 41 22-52 31z" fill="#e6cba9"/></g>
+              </g>
+              <g data-twin-layer="roads" class="twin-road-layer">
+                <path d="m399 420 226-124 54 29-227 128z" fill="#c8d2c5"/><path d="m411 406 215-118 34 18-216 120z" fill="#69736f"/><path d="m430 409 18-10m20-11 18-10m20-11 18-10m20-11 18-10m20-11 18-10" stroke="#f4edcf" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 8"/>
+                <path d="m395 416 226-124" stroke="#fffdf4" stroke-width="7" opacity=".9"/><path d="m453 454 228-126" stroke="#f8f5eb" stroke-width="8" opacity=".95"/>
+                <path d="m625 296 54 29 41-23-54-29z" fill="#dfe4d8" stroke="#c2cec0" stroke-width="2"/>
+                <text class="twin-svg-label road-label" x="545" y="378" transform="rotate(-29 545 378)">ILLUSTRATIVE ROAD · WIDTH NOT PROVIDED</text>
+              </g>
+              <g data-twin-layer="boundary" class="twin-boundary-layer" filter="url(#twin-shadow)">
+                <path id="twinPlotShape" d="m280 255 160-90 174 93-166 95z" fill="#8fbd78" fill-opacity=".32" stroke="#207844" stroke-width="8" stroke-linejoin="round" stroke-dasharray="1 0"/>
+                <path id="twinPlotInner" d="m295 255 145-81 158 84-150 83z" fill="none" stroke="#f7fff4" stroke-width="2" stroke-dasharray="8 7" opacity=".95"/>
+                <text class="twin-svg-label plot-label" id="twinPlotLabel" x="370" y="333" transform="rotate(-29 370 333)">SELECTED PLOT · APPROXIMATE DEMO OUTLINE</text>
+              </g>
+              <g data-twin-layer="house" class="twin-proposed-layer" filter="url(#twin-shadow)">
+                <path d="m350 254 75-42 79 42-76 43z" fill="#f2c786" fill-opacity=".43" stroke="#956a40" stroke-width="2" stroke-dasharray="7 5"/>
+                <path d="m362 218 62-35 62 33-62 37z" fill="#e3d5bd"/><path d="m362 218 62 35v40l-62-35z" fill="#c8b69d"/><path d="m424 253 62-37v40l-62 37z" fill="#af987a"/>
+                <path d="m353 218 71-42 72 39-72 43z" fill="#477c58"/><path d="m353 218 71-51 72 48-72 43z" fill="#6d9b66" stroke="#365f44" stroke-width="2"/>
+                <path d="m375 224 18-11v18l-18 11zm70 12 17-10v19l-17 10z" fill="#a8c9c1" stroke="#f6f4e9" stroke-width="3"/><path d="m416 249 14 8v22l-14-8z" fill="#795b42"/>
+                <text class="twin-svg-label house-label" x="385" y="302" transform="rotate(-29 385 302)">PROPOSED HOUSE · ILLUSTRATIVE PLACEMENT</text>
+              </g>
+              <g data-twin-layer="roads" class="twin-access-layer">
+                <path d="m514 293 35 19" fill="none" stroke="#246e45" stroke-width="4" stroke-dasharray="5 5" marker-end="url(#twin-arrow)"/>
+                <circle cx="514" cy="293" r="9" fill="#fff" stroke="#246e45" stroke-width="4"/><text class="twin-svg-label access-label" x="540" y="320">ILLUSTRATIVE ACCESS POINT</text>
+              </g>
+              <text class="twin-north" x="910" y="105">N</text><path d="m918 114 0 28m0-28-7 9m7-9 7 9" stroke="#55755d" stroke-width="3" fill="none"/>
+            </svg>
+          </div>
+          <div class="elevation">ELEVATION RANGE <b id="elevationValue">—</b></div><div class="twin-message" id="terrainType">Flat demo terrain</div>
+        </div>
+        <div class="twin-legend" aria-label="Visualization layers">
+          <label><input type="checkbox" data-twin-toggle="boundary" checked> <i class="legend-boundary"></i> Land boundary</label>
+          <label><input type="checkbox" data-twin-toggle="roads" checked> <i class="legend-roads"></i> Roads / access</label>
+          <label><input type="checkbox" data-twin-toggle="buildings" checked> <i class="legend-buildings"></i> Nearby buildings</label>
+          <label><input type="checkbox" data-twin-toggle="house" checked> <i class="legend-house"></i> Proposed house</label>
+          <label><input type="checkbox" data-twin-toggle="green" checked> <i class="legend-green"></i> Trees / green areas</label>
+        </div>
+        <section class="twin-info-panel" aria-label="Land information">
+          <div class="twin-info-heading"><div><p class="section-kicker">DEMO LAND INFORMATION</p><h3>Land and access details</h3></div><span class="twin-sample-badge" id="twinSampleBadge" hidden>Illustrative DEMO-001 values</span></div>
+          <div class="twin-summary-cards twin-info-grid">
+            <div class="twin-info-card"><span>Land type</span><b id="landType">Not provided</b></div>
+            <div class="twin-info-card"><span>Land area</span><b id="landArea">Not provided</b></div>
+            <div class="twin-info-card"><span>Boundary</span><b id="boundaryStatus">Not provided</b></div>
+            <div class="twin-info-card"><span>Road condition</span><b id="twinRoadAccess">Not provided</b></div>
+            <div class="twin-info-card"><span>Road width</span><b id="twinRoadWidth">Not provided</b></div>
+            <div class="twin-info-card"><span>Surroundings</span><b id="twinEnvironment">Not provided</b></div>
+          </div>
+          <div class="twin-info-lower">
+            <article class="twin-construction-card">
+              <div class="twin-construction-title"><span class="twin-construction-icon" aria-hidden="true">&#8962;</span><div><p class="section-kicker">BUILDING POSSIBILITY</p><h3>House construction possibility</h3></div></div>
+              <p id="twinFootprint">No building feasibility information is available.</p>
+              <div class="twin-construction-facts"><div><span>Potential building height</span><b id="twinBuildingHeight">Not specified</b></div><div><span>Number of floors</span><b id="twinFloorCount">Cannot be determined without checking approved plans and authority rules.</b></div></div>
+            </article>
+            <article class="twin-checks-card"><h3>What to check before construction</h3><ul><li>Land use and zoning</li><li>Road width and site access</li><li>Building height and setback rules</li><li>Required building approval</li></ul></article>
+          </div>
+          <div class="twin-data-meta"><span>ELEVATION <b id="elevationMeta">Not provided</b></span></div>
+          <p class="twin-synthetic-note" id="twinSampleNote">Sample information for DEMO-001 is illustrative and is not official verification. Nearby surroundings, road width, building height, floor count, and construction approval have not been verified.</p>
+        </section>
+        <p class="twin-note" id="terrainNote">Demo visualization only; not surveyed elevation data.</p><p class="twin-boundary-note" id="twinBoundaryNote">The visible plot outline is illustrative and not drawn to scale.</p>
+      </section>
+    </div>
 
-    <section class="panel mutation-panel" id="mutation-history" aria-labelledby="mutationHistoryTitle"><div class="panel-heading"><div><p class="section-kicker">OWNERSHIP RECORD SCREENING</p><h2 id="mutationHistoryTitle">Mutation History</h2><p class="panel-subtitle">Review the recorded sequence and current mutation status before purchase.</p></div><span class="verified-chip" id="mutationCurrentStatus">LOADING</span></div><div class="mutation-explainer" id="mutationExplainer">Loading mutation history from the backend…</div><ol class="mutation-timeline" id="mutationTimeline" aria-live="polite"><li class="loading-row">Loading mutation events…</li></ol><p class="mutation-warning" id="mutationWarning">Demo history is for screening only; verify ownership and mutation records with official sources.</p></section>
+    <section class="panel risk-panel" id="risk"><div class="panel-heading risk-heading"><div><p class="section-kicker">RISK ENGINE</p><h2>Risk breakdown</h2><p class="panel-subtitle">Five signals that shape your land’s risk score.</p></div><div class="overall-score"><span>OVERALL SCORE</span><b id="riskScoreSmall">—<small>/100</small></b></div></div><div class="risk-categories" id="riskCategories"><div class="loading-row">Loading risk categories from backend…</div></div><p class="risk-actions-disclaimer">General prototype guidance only — not official legal advice.</p><div class="dispute-alert" id="disputeAlert"><span class="alert-symbol">!</span><div><b>Dispute status is being checked</b><p>Active disputes may change the final screening decision.</p></div><span class="alert-state">CHECKING</span></div></section>
 
-    <div class="section-grid lower-grid"><section class="panel docs-panel" id="documents"><div class="panel-heading"><div><p class="section-kicker">DOCUMENT SCREENING</p><h2>Recorded field checks</h2></div><span class="verified-chip" id="verifiedChip">◉ SCREENING</span></div><div class="docs-list" id="documentsList"><div class="loading-row">Checking recorded land fields…</div></div><button class="text-button" id="allDocuments">View screening checks <b>→</b></button></section>
+
+
+
+
+    <div class="section-grid lower-grid">
       <section class="panel ai-panel"><div class="panel-heading"><div><p class="section-kicker">AI-STYLE LAND RISK ANALYSIS</p><h2>Analyst’s brief <span class="ai-spark">✳</span></h2></div><span class="ai-badge" id="analysisMethod">RULE-BASED SCREENING</span></div><div class="ai-content" id="aiAnalysis"><div class="loading-row">Generating analysis from land records…</div></div><div class="recommendation" id="recommendation"><span>✦</span><div><b>System recommendation</b><p>Recommendation will appear with analysis.</p></div></div></section></div>
 
     <section class="panel simulator-panel" id="simulator"><div class="simulator-intro"><div class="sim-icon">⟳</div><div><p class="section-kicker">PLAN WITH CONFIDENCE</p><h2>What-if risk simulator</h2><p>Scores are out of 100; changes are points, not percentages. The land record is not changed.</p></div></div><div class="simulator-controls"><label for="simulationStep">SCENARIO</label><select id="simulationStep"><option value="current">Current condition</option><option value="dispute">Dispute resolved</option><option value="mutation">Mutation complete</option><option value="both">Both completed</option></select><button class="button button-green" id="simulateButton">Calculate result <span>→</span></button></div><div class="simulation-result" id="simulationResult" aria-live="polite"><span class="result-spark">✳</span><div><b>Choose a scenario to calculate its risk score</b><p>Choose a scenario to see a possible score change. The land record will not change.</p></div></div></section>
+    </div>
+    <div class="main-view" data-view-panel="reports" hidden>
+    <section class="panel mutation-panel" id="mutation-history" aria-labelledby="mutationHistoryTitle"><div class="panel-heading"><div><p class="section-kicker">OWNERSHIP RECORD SCREENING</p><h2 id="mutationHistoryTitle">Mutation History</h2><p class="panel-subtitle">Review the recorded sequence and current mutation status before purchase.</p></div><span class="verified-chip" id="mutationCurrentStatus">LOADING</span></div><div class="mutation-explainer" id="mutationExplainer">Loading mutation history from the backend…</div><ol class="mutation-timeline" id="mutationTimeline" aria-live="polite"><li class="loading-row">Loading mutation events…</li></ol><p class="mutation-warning" id="mutationWarning">This synthetic timeline is for prototype display only. Owner names are illustrative placeholders; no ownership transfer event was returned.</p></section>
     <section class="panel report-panel" id="final-report"><div class="panel-heading"><div><p class="section-kicker">PORTABLE SUMMARY</p><h2>Final land report</h2></div><div class="report-actions"><button class="subtle-button" id="refreshReport">Refresh report</button><button class="button button-dark" id="printReport">Print / Save PDF</button></div></div><div id="reportContent" class="report-content"><div class="loading-row">Loading consolidated report from backend…</div></div></section>
+    </div>
     </details>
     <footer><span>© 2026 LandShield</span><span>Land decisions, made clearer.</span><span>Data provided by your connected risk engine <i></i></span></footer>
   </main>
